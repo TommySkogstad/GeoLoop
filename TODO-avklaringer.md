@@ -106,7 +106,7 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 
 - [x] **Treghet i systemet**: Estimert ~24 timer fra oppstart til full effekt. Værprediksjonen må se minst 24 timer frem i tid.
 - [x] **Temperaturgrenser**: -5 °C til +5 °C er faresonen — rundt 0 °C er kritisk
-- [ ] **Prioritet**: Optimalisere for energibruk eller for 100% sikkerhet mot is?
+- [x] **Prioritet**: Sikkerhet mot is — hellere kjøre for mye enn å risikere glatt
 
 ## E. Funksjonelle ønsker — gjenstår
 
