@@ -32,6 +32,7 @@ Styring av vannbåren varme i utendørs bakke (snøsmelting/is-forebygging) via 
 | Kolber | 10 kW elektriske | Tilleggsvarme (ingen styring ennå) |
 | Sirkulasjonspumpe | Ekstern + intern (følger VP) | Sirkulerer varme i bakkeløyfen |
 | Bakkeløyfe | 8 sløyfer, 900 m totalt (20/16 mm) | ~181 liter vannvolum |
+| Buffertank | 200 liter | Tankføler på VP klemme 15/16 |
 
 ### Temperatursensorer (5 målepunkter)
 
@@ -41,7 +42,7 @@ Styring av vannbåren varme i utendørs bakke (snøsmelting/is-forebygging) via 
 | T2 | Ut av varmesløyfe (bakke) | Returtemperatur fra bakken (delta-T) |
 | T3 | Inn til varmepumpe | Returvann til VP |
 | T4 | Ut av varmepumpe | Turvann fra VP |
-| T5 | Vanntank | Buffertemperatur |
+| T5 | Vanntank (200 L) | Buffertemperatur (VP klemme 15/16) |
 
 ### Relétilkoblinger
 

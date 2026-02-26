@@ -22,7 +22,7 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 | T2 | Ut av varmesløyfe (bakke) | Returtemperatur fra bakken (delta-T → effekt) |
 | T3 | Inn til varmepumpe | Returvann til VP |
 | T4 | Ut av varmepumpe | Turvann fra VP |
-| T5 | Vanntank | Buffertemperatur |
+| T5 | Vanntank (200 L) | Buffertemperatur (VP klemme 15/16) |
 
 ### VP klemmerekke (fra servicemanual)
 
@@ -35,7 +35,7 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 | 11 | Kjøling | Ikke aktuelt |
 | 12 | Varme (Heat) | Room Thermostat Cable |
 | 13 | Varme | Tank OLP Cable |
-| 14-15 | Tanksensor | Tank Sensor Cable |
+| **15-16** | **Tankføler** | **Tank Sensor Cable (200L tank)** |
 | **17-18** | **Ekstern kontroller (ON/OFF)** | **External Controller Cable** |
 | 19-20 | Solventil | Solar Three-way Valve Cable |
 | 21-23 | Solpumpe | Solar Pump Station Cable |
@@ -66,12 +66,14 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 - [x] **Antall sløyfer**: 8
 - [x] **Total rørlengde**: 900 m (~112 m per sløyfe)
 - [x] **Rørtype**: 20 mm ytre diameter, 2 mm veggtykkelse → 16 mm indre diameter
-- [x] **Beregnet vannvolum**: ~181 liter (π × 0.008² × 900 = 0.181 m³)
+- [x] **Beregnet vannvolum sløyfe**: ~181 liter (π × 0.008² × 900 = 0.181 m³)
+- [x] **Buffertank**: 200 liter (tankføler på VP klemme 15/16)
+- [x] **Totalt vannvolum**: ~381 liter (181 L sløyfe + 200 L tank)
 - [ ] **Areal**: Hvor stort areal dekker bakkeløyfen?
 
 ## D. Prediktiv logikk — gjenstår
 
-- [ ] **Treghet i systemet**: Tidsforsinkelse fra oppstart til effekt (avgjør hvor langt frem vi må predikere). 181 liter i sløyfen gir betydelig termisk masse.
+- [ ] **Treghet i systemet**: Tidsforsinkelse fra oppstart til effekt (avgjør hvor langt frem vi må predikere). ~381 liter totalt vannvolum gir betydelig termisk masse.
 - [ ] **Temperaturgrenser**: Hvilket område er "farlig"? (typisk 0 til -5 °C med fukt)
 - [ ] **Prioritet**: Optimalisere for energibruk eller for 100% sikkerhet mot is?
 

@@ -47,3 +47,8 @@ ground_loop:
   pipe_outer_mm: 20      # Ytre diameter i mm
   pipe_wall_mm: 2        # Veggtykkelse i mm
   # Beregnet: indre diameter 16 mm, vannvolum ~181 liter
+
+# Buffertank
+tank:
+  volume_liters: 200     # 200 liter buffertank
+  # Tankføler koblet til VP klemme 15/16
