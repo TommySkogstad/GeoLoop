@@ -1,12 +1,12 @@
 # GeoLoop
 
-Styring av vannbaren varme i utendors bakke (snosmelting/is-forebygging) via Raspberry Pi, med prediktiv oppstart basert pa vaerdata.
+Styring av vannbåren varme i utendørs bakke (snøsmelting/is-forebygging) via Raspberry Pi, med prediktiv oppstart basert på værdata.
 
 ## Systemarkitektur
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Vaertjeneste│────▶│              │────▶│  Rele-kort   │
+│  Værtjeneste │────▶│              │────▶│  Relékort    │
 │  (api.met.no)│     │  Raspberry   │     │  (GPIO)      │
 └─────────────┘     │  Pi          │     └──────┬───────┘
                      │              │            │
@@ -19,32 +19,32 @@ Styring av vannbaren varme i utendors bakke (snosmelting/is-forebygging) via Ras
 ## Komponenter
 
 ### 1. Styringslogikk (kjernen)
-- **Beslutningsmotor**: Nar skal varmen pa/av?
-- **Prediktiv modell**: Start oppvarming *for* det blir glatt, basert pa treghet i systemet
-- **Moduser**: Auto (vaerbasert), Manuell pa/av, Tidsplan
+- **Beslutningsmotor**: Når skal varmen på/av?
+- **Prediktiv modell**: Start oppvarming *før* det blir glatt, basert på treghet i systemet
+- **Moduser**: Auto (værbasert), manuell på/av, tidsplan
 
-### 2. Maskinvare-integrasjon (RPi)
-- GPIO-styring av rele for varmepumpe pa/av
+### 2. Maskinvareintegrasjon (RPi)
+- GPIO-styring av relé for varmepumpe på/av
 - Temperatursensorer (DS18B20 via 1-Wire)
 - Eventuelt fuktsensor for bakken
 
-### 3. Vaerdata-integrasjon
+### 3. Værdataintegrasjon
 - **api.met.no** (Yr) — gratis, norsk, god dekning
-- Henter: temperatur, nedbor, nedborstype, vindforhold
-- Predikterer isfare basert pa kombinasjon av faktorer
+- Henter: temperatur, nedbør, nedbørstype, vindforhold
+- Predikerer isfare basert på kombinasjon av faktorer
 
 ### 4. Brukergrensesnitt
-- Enkel web-UI pa RPi (dashboard, innstillinger, logg)
+- Enkel web-UI på RPi (dashboard, innstillinger, logg)
 - Eventuelt mobilvarslinger ved oppstart/feil
 
 ## Teknisk stack
 
 | Komponent | Valg | Begrunnelse |
 |-----------|------|-------------|
-| Sprak | Python 3 | Naturlig for RPi, GPIO, rask prototyping |
-| Vaertjeneste | api.met.no | Gratis, norsk, godt dokumentert |
-| Temp-sensorer | DS18B20 (1-Wire) | Billig, vanntett variant finnes, enkel pa RPi |
-| Rele | Rele-HAT for RPi | Enklest, avhenger av strombehov |
+| Språk | Python 3 | Naturlig for RPi, GPIO, rask prototyping |
+| Værtjeneste | api.met.no | Gratis, norsk, godt dokumentert |
+| Tempsensorer | DS18B20 (1-Wire) | Billig, vanntett variant finnes, enkel på RPi |
+| Relé | Relé-HAT for RPi | Enklest, avhenger av strømbehov |
 | Database | SQLite | Lokal logging uten ekstra infra |
-| Web-UI | FastAPI + enkel frontend | Lett a kjore pa RPi |
-| Prosesskjoring | systemd | Standard pa RPi OS |
+| Web-UI | FastAPI + enkel frontend | Lett å kjøre på RPi |
+| Prosesskjøring | systemd | Standard på RPi OS |
