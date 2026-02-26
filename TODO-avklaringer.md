@@ -108,12 +108,13 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 - [x] **Temperaturgrenser**: -5 °C til +5 °C er faresonen — rundt 0 °C er kritisk
 - [x] **Prioritet**: Sikkerhet mot is — hellere kjøre for mye enn å risikere glatt
 
-## E. Funksjonelle ønsker — gjenstår
+## E. Funksjonelle ønsker (avklart)
 
-- [ ] **Varsling**: Ønskes varsling på mobil (SMS/push) ved oppstart, feil, etc.?
-- [ ] **Fjernstyring**: Skal systemet kunne styres fra utenfor lokalt nett?
-- [ ] **Logging**: Hvor lenge skal historikk lagres?
-- [ ] **Integrasjoner**: Ønskes integrasjon med smarthus (Home Assistant, etc.)?
+- [x] **Fjernstyring**: Ja — skal kunne styres utenfra
+- [x] **Varsling**: Ja — varsling når noe er galt (feil, sensorbortfall, VP stopp etc.)
+- [x] **Logging**: Ja — historikk som kan sjekkes i ettertid
+- [x] **Grafing**: Temperatur over tid — visuelt dashboard
+- [x] **Statistikk**: Driftsstatistikk og forbruksoversikt
 
 ## F. Temperaturfølere (avklart)
 
