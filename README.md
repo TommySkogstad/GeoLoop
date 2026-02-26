@@ -5,16 +5,51 @@ Styring av vannbåren varme i utendørs bakke (snøsmelting/is-forebygging) via 
 ## Systemarkitektur
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌──────────────┐
-│  Værtjeneste │────▶│              │────▶│  Relékort    │
-│  (api.met.no)│     │  Raspberry   │     │  (GPIO)      │
-└─────────────┘     │  Pi          │     └──────┬───────┘
-                     │              │            │
-┌─────────────┐     │  - Styrings- │     ┌──────▼───────┐
-│  Temp-       │────▶│    logikk   │     │  Varmepumpe  │
-│  sensorer    │     │  - Web UI   │     │              │
-└─────────────┘     └──────────────┘     └──────────────┘
+┌─────────────┐     ┌────────────────────────┐     ┌──────────────────┐
+│  Værtjeneste │────▶│  Raspberry Pi 3B+      │     │  RPi Relay Board │
+│  (api.met.no)│     │                        │────▶│  (3 kanaler)     │
+└─────────────┘     │  + Open-Smart GPIO     │     │                  │
+                     │    Expansion           │     │  K1: VP ON/OFF   │
+┌─────────────┐     │                        │     │  K2: Sirk.pumpe  │
+│  Temp-       │────▶│  - Styringslogikk      │     │  K3: Ledig       │
+│  sensorer    │     │  - Web UI / API        │     └────────┬─────────┘
+│  (5 stk)     │     └────────────────────────┘              │
+└─────────────┘                                     ┌────────▼─────────┐
+                                                    │  Panasonic       │
+                                                    │  WH-MXC12G6E5   │
+                                                    │  (klemme 17/18)  │
+                                                    └──────────────────┘
 ```
+
+## Maskinvare
+
+| Komponent | Modell | Rolle |
+|-----------|--------|-------|
+| Styringsenhet | Raspberry Pi 3B+ | Kjører GeoLoop-programvaren |
+| Relékort | RPi Relay Board (3 kanaler, HAT) | Styrer VP og sirkulasjonspumpe |
+| GPIO-utvidelse | Open-Smart GPIO Expansion Board | Ekstra pinner til sensorer |
+| Varmepumpe | Panasonic WH-MXC12G6E5 (Aquarea G-gen) | Luft-vann, hovedvarmekilden |
+| Kolber | 10 kW elektriske | Tilleggsvarme (ingen styring ennå) |
+| Sirkulasjonspumpe | Ekstern + intern (følger VP) | Sirkulerer varme i bakkeløyfen |
+| Bakkeløyfe | 8 sløyfer, 900 m totalt (20/16 mm) | ~181 liter vannvolum |
+
+### Temperatursensorer (5 målepunkter)
+
+| # | Plassering | Formål |
+|---|------------|--------|
+| T1 | Inn til varmesløyfe (bakke) | Turtemperatur til bakken |
+| T2 | Ut av varmesløyfe (bakke) | Returtemperatur fra bakken (delta-T) |
+| T3 | Inn til varmepumpe | Returvann til VP |
+| T4 | Ut av varmepumpe | Turvann fra VP |
+| T5 | Vanntank | Buffertemperatur |
+
+### Relétilkoblinger
+
+| Kanal | Funksjon | Tilkobling |
+|-------|----------|------------|
+| 1 | Varmepumpe ON/OFF | VP klemme 17/18 (potensialfri, erstatter fabrikkjumper) |
+| 2 | Ekstern sirkulasjonspumpe | Uavhengig av VP |
+| 3 | Ledig | Reservert for fremtidig bruk (kolber) |
 
 ## Hurtigstart
 
@@ -61,14 +96,16 @@ GeoLoop/
 │   ├── test_met_client.py
 │   └── test_store.py
 └── docs/
-    └── oppsett-guide.md      # Maskinvare- og installasjonsguide
+    ├── oppsett-guide.md                          # Maskinvare- og installasjonsguide
+    ├── CZ-TAW1-OI-1.pdf                          # CZ-TAW1 dok (ikke kompatibel)
+    └── SM-WHMXC09G3E5_WH-MXC12G6E5.pdf          # VP servicemanual
 ```
 
 ## API-endepunkter
 
 | Endepunkt | Beskrivelse |
 |-----------|-------------|
-| `GET /api/status` | Gjeldende tilstand (vær, sensorer, pumpe) |
+| `GET /api/status` | Gjeldende tilstand (vær, sensorer, releer) |
 | `GET /api/weather` | Siste værdata + 24-timers prognose |
 | `GET /api/log?limit=50` | Historikk fra databasen |
 
@@ -80,9 +117,9 @@ GeoLoop/
 - **Moduser**: Auto (værbasert), manuell på/av, tidsplan
 
 ### Maskinvareintegrasjon (RPi)
-- GPIO-styring av relé for varmepumpe av/på
-- Temperatursensorer (DS18B20 via 1-Wire)
-- Eventuelt fuktsensor for bakken
+- GPIO-styring av 3 relékanaler via RPi Relay Board (HAT)
+- 5 temperatursensorer (tur/retur bakke, tur/retur VP, vanntank)
+- Ekstern kontrollkabel til VP klemme 17/18 (potensialfri ON/OFF)
 
 ### Værdataintegrasjon
 - **api.met.no** (Yr) — gratis, norsk, god dekning
@@ -98,7 +135,7 @@ GeoLoop/
 | Værtjeneste | api.met.no | Gratis, norsk, godt dokumentert |
 | HTTP-klient | httpx | Asynkron, moderne |
 | Tempsensorer | DS18B20 (1-Wire) | Billig, vanntett variant finnes, enkel på RPi |
-| Relé | Relékort via GPIO | Enklest, avhenger av strømbehov |
+| Relé | RPi Relay Board (3-kanals HAT) | Sitter direkte på RPi, 3 uavhengige kanaler |
 | Database | SQLite | Lokal logging uten ekstra infra |
 | Scheduler | APScheduler | Periodisk værhenting |
 | Prosesskjøring | systemd | Standard på RPi OS |
@@ -113,4 +150,4 @@ python3 -m venv .venv
 
 ## Status
 
-Se [TODO-avklaringer.md](TODO-avklaringer.md) for åpne spørsmål om maskinvare og anlegg.
+Se [TODO-avklaringer.md](TODO-avklaringer.md) for åpne spørsmål og full maskinvareoversikt.
