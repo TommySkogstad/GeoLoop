@@ -73,7 +73,7 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 - [x] **RPi**: Raspberry Pi 3B+
 - [x] **Relékort**: RPi Relay Board — 3 kanaler (HAT-format)
 - [x] **GPIO-utvidelse**: Open-Smart GPIO Expansion Board — ekstra pinner til sensorer
-- [x] **Temperatursensorer**: Rørtemperaturfølere (type ukjent) + DS18B20 for ute/bakke
+- [x] **Temperatursensorer**: DS18B20 (1-Wire), hardkoblet, 5 stk
 
 ### Planlagt relébruk
 
@@ -114,17 +114,12 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 - [ ] **Logging**: Hvor lenge skal historikk lagres?
 - [ ] **Integrasjoner**: Ønskes integrasjon med smarthus (Home Assistant, etc.)?
 
-## F. Temperaturfølere — sjekkes fysisk
+## F. Temperaturfølere (avklart)
 
-- [ ] **Type rørfølere**: Ukjent — sjekk merkingen (DS18B20 har 3 ledere, PT1000 har 2-4, NTC har 2)
-- [ ] **Tilkobling**: Har de kontakt/plugg, eller er de hardkoblet?
-
-### Slik sjekker du sensortype
-
-1. **DS18B20**: Digital, 3 ledere (rød/svart/gul). Liten metallhylse. Kobles rett på GPIO.
-2. **PT1000/PT100**: 2 eller 4 ledere, vanligvis hvit kabel. Trenger ADC (analog-digital-konverter).
-3. **NTC**: 2 ledere, ofte svart kabel. Trenger ADC.
-4. **Sjekk merking**: Se etter tekst på sensorkroppen eller i dokumentasjon fra installatør.
+- [x] **Type**: DS18B20 (1-Wire digital)
+- [x] **Tilkobling**: Hardkoblet
+- [x] **Antall**: 5 stk (T1–T5)
+- [x] **GPIO**: Alle på GPIO4 (1-Wire-buss), ingen ADC nødvendig
 
 ## Referansedokumentasjon
 
