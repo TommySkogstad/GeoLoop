@@ -104,7 +104,7 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 
 ## D. Prediktiv logikk — gjenstår
 
-- [ ] **Treghet i systemet**: Tidsforsinkelse fra oppstart til effekt (avgjør hvor langt frem vi må predikere). ~421 liter totalt vannvolum, men grunt (5 cm) i sand/asfalt gir rask respons.
+- [x] **Treghet i systemet**: Estimert ~24 timer fra oppstart til full effekt. Værprediksjonen må se minst 24 timer frem i tid.
 - [x] **Temperaturgrenser**: -5 °C til +5 °C er faresonen — rundt 0 °C er kritisk
 - [ ] **Prioritet**: Optimalisere for energibruk eller for 100% sikkerhet mot is?
 
