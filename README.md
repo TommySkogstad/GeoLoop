@@ -29,7 +29,7 @@ Styring av vannbåren varme i utendørs bakke (snøsmelting/is-forebygging) via 
 | Relékort | RPi Relay Board (3 kanaler, HAT) | Styrer VP og sirkulasjonspumpe |
 | GPIO-utvidelse | Open-Smart GPIO Expansion Board | Ekstra pinner til sensorer |
 | Varmepumpe | Panasonic WH-MXC12G6E5 (Aquarea G-gen) | Luft-vann, hovedvarmekilden |
-| Kolber | 10 kW elektriske | Tilleggsvarme (ingen styring ennå) |
+| Kolber | 10 kW elektriske, 10 L tank | Tilleggsvarme på VP inngang (ingen styring ennå) |
 | Sirkulasjonspumpe | Ekstern + intern (følger VP) | Sirkulerer varme i bakkeløyfen |
 | Bakkeløyfe | 8 sløyfer, 900 m totalt (20/16 mm) | ~181 liter vannvolum |
 | Buffertank | 200 liter | Tankføler på VP klemme 15/16 |

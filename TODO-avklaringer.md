@@ -8,7 +8,7 @@ Spørsmål som må besvares før vi kan lage detaljert design og begynne å kode
 - [x] **Ekstern kontrollkabel**: 2-leder potensialfri fra **klemme 17/18** på VP. Fabrikkjumper mellom 17/18 = VP alltid på. **Hard ON/OFF** — lukket krets = VP på, åpen = VP helt av.
 - [x] **Romtermostat**: Klemme 9 (L), 10 (N), 12 (Heat) — ekstern romtermostat for varmebehov-signal. Klemme 11 er kjøling (ikke aktuelt for snøsmelting).
 - [x] **Sirkulasjonspumpe**: Intern pumpe følger VP. I tillegg en ekstern sirkulasjonspumpe som må styres separat via relé.
-- [x] **Kolber**: 10 kW elektriske varmekolber finnes, men ingen styring i dag. Mulig fremtidig tillegg.
+- [x] **Kolber**: 10 kW elektriske varmekolber på inngangskretsen til VP, med egen 10 L tank. Ingen styring i dag. Mulig fremtidig tillegg.
 - [x] **CZ-TAW1**: Ikke kompatibel med G-generasjon (krever H-gen+ og CN-CNT-kontakt som ikke finnes på denne modellen).
 - [x] **HeishaMon**: Ikke kompatibel med G-generasjon. G-serien bruker annen protokoll (960 baud, invertert signal) enn H/J/K/L (9600 baud). Alternativ: aquarea_esphome (ubekreftet for G-serie).
 
@@ -68,12 +68,13 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 - [x] **Rørtype**: 20 mm ytre diameter, 2 mm veggtykkelse → 16 mm indre diameter
 - [x] **Beregnet vannvolum sløyfe**: ~181 liter (π × 0.008² × 900 = 0.181 m³)
 - [x] **Buffertank**: 200 liter (tankføler på VP klemme 15/16)
-- [x] **Totalt vannvolum**: ~381 liter (181 L sløyfe + 200 L tank)
+- [x] **Kolbetank**: 10 liter (på inngangskretsen til VP, med 10 kW varmekolber)
+- [x] **Totalt vannvolum**: ~391 liter (181 L sløyfe + 200 L buffertank + 10 L kolbetank)
 - [ ] **Areal**: Hvor stort areal dekker bakkeløyfen?
 
 ## D. Prediktiv logikk — gjenstår
 
-- [ ] **Treghet i systemet**: Tidsforsinkelse fra oppstart til effekt (avgjør hvor langt frem vi må predikere). ~381 liter totalt vannvolum gir betydelig termisk masse.
+- [ ] **Treghet i systemet**: Tidsforsinkelse fra oppstart til effekt (avgjør hvor langt frem vi må predikere). ~391 liter totalt vannvolum gir betydelig termisk masse.
 - [ ] **Temperaturgrenser**: Hvilket område er "farlig"? (typisk 0 til -5 °C med fukt)
 - [ ] **Prioritet**: Optimalisere for energibruk eller for 100% sikkerhet mot is?
 
