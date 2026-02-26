@@ -7,7 +7,7 @@ weather:
   poll_interval_minutes: 30
 
 database:
-  path: "geoloop.db"
+  path: "geoloop.db"  # Docker: bruk "/app/data/geoloop.db"
 
 web:
   host: "0.0.0.0"

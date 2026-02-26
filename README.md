@@ -54,32 +54,43 @@ Styring av vannbåren varme i utendørs bakke (snøsmelting/is-forebygging) via 
 
 ## Hurtigstart
 
+Kjøres via Docker på Raspberry Pi med Cloudflare Tunnel — ingen åpne porter.
+
 ```bash
-# Klon og installer
-git clone <repo-url> GeoLoop
+git clone https://github.com/TommySkogstad/GeoLoop
 cd GeoLoop
-sudo bash scripts/install.sh
 
-# Rediger konfigurasjon
-nano config.yaml
+# 1. Opprett tunnel i Cloudflare Zero Trust og kopier token
+cp .env.example .env
+nano .env   # lim inn CLOUDFLARE_TUNNEL_TOKEN=...
 
-# Start
-sudo systemctl start geoloop
+# 2. Konfigurer posisjon og database-sti
+cp config.example.yaml config.yaml
+nano config.yaml   # sett lat/lon og database.path: /app/data/geoloop.db
 
-# Sjekk at det kjører
-curl http://localhost:8000/api/status
+# 3. Start
+docker compose up -d --build
+
+# Sjekk status
+curl https://geoloop.tommytv.no/api/status
 ```
 
-Se [docs/oppsett-guide.md](docs/oppsett-guide.md) for fullstendig steg-for-steg-guide med maskinvareoppsett.
+### Cloudflare-oppsett
+
+1. Gå til [Cloudflare Zero Trust](https://one.dash.cloudflare.com) → **Networks → Tunnels → Create a tunnel**
+2. Navn: `geoloop`, velg Docker som connector-type
+3. Under **Public Hostnames**: `geoloop.tommytv.no` → `http://geoloop:8000`
+4. Kopier tunnel-token til `.env`
 
 ## Prosjektstruktur
 
 ```
 GeoLoop/
+├── Dockerfile                # Docker-image (Python 3.11-slim, multi-arch)
+├── docker-compose.yml        # Cloudflare Tunnel + GeoLoop-app
+├── .env.example              # Mal for CLOUDFLARE_TUNNEL_TOKEN
 ├── pyproject.toml            # Avhengigheter og prosjektmetadata
 ├── config.example.yaml       # Eksempelkonfigurasjon
-├── scripts/
-│   └── install.sh            # Installer som systemd-tjeneste på RPi
 ├── geoloop/
 │   ├── main.py               # Oppstart, scheduler, livsløp
 │   ├── config.py             # Konfig-lasting fra YAML
@@ -139,9 +150,9 @@ GeoLoop/
 | Relé | RPi Relay Board (3-kanals HAT) | Sitter direkte på RPi, 3 uavhengige kanaler |
 | Database | SQLite | Lokal logging uten ekstra infra |
 | Scheduler | APScheduler | Periodisk værhenting |
-| Prosesskjøring | systemd | Standard på RPi OS |
+| Prosesskjøring | Docker + Cloudflare Tunnel | Ingen åpne porter, tilgjengelig via geoloop.tommytv.no |
 
-## Utvikling
+## Utvikling (lokalt uten Docker)
 
 ```bash
 python3 -m venv .venv

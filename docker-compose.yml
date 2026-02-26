@@ -1,0 +1,50 @@
+# GeoLoop — Cloudflare Tunnel
+# Ingen porter eksponert - all trafikk går via Cloudflare
+#
+# Oppsett:
+# 1. Opprett tunnel i Cloudflare Zero Trust dashboard
+# 2. Kopier tunnel token til .env som CLOUDFLARE_TUNNEL_TOKEN
+# 3. Konfigurer public hostname i Cloudflare: geoloop.tommytv.no -> http://geoloop:8000
+# 4. Opprett config.yaml fra config.example.yaml (sett database.path: /app/data/geoloop.db)
+# 5. docker compose up -d --build
+
+name: geoloop
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Sett CLOUDFLARE_TUNNEL_TOKEN i .env}
+    networks:
+      - geoloop-network
+    depends_on:
+      - geoloop
+
+  geoloop:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - geoloop_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/status')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - geoloop-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+networks:
+  geoloop-network:
+    driver: bridge
+
+volumes:
+  geoloop_data:
