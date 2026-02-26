@@ -69,12 +69,13 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 - [x] **Beregnet vannvolum sløyfe**: ~181 liter (π × 0.008² × 900 = 0.181 m³)
 - [x] **Buffertank**: 200 liter (tankføler på VP klemme 15/16)
 - [x] **Kolbetank**: 10 liter (på inngangskretsen til VP, med 10 kW varmekolber)
-- [x] **Totalt vannvolum**: ~391 liter (181 L sløyfe + 200 L buffertank + 10 L kolbetank)
+- [x] **Internrør**: ~30 liter (rør mellom komponenter internt i systemet)
+- [x] **Totalt vannvolum**: ~421 liter (181 L sløyfe + 200 L buffer + 10 L kolbetank + ~30 L internrør)
 - [ ] **Areal**: Hvor stort areal dekker bakkeløyfen?
 
 ## D. Prediktiv logikk — gjenstår
 
-- [ ] **Treghet i systemet**: Tidsforsinkelse fra oppstart til effekt (avgjør hvor langt frem vi må predikere). ~391 liter totalt vannvolum gir betydelig termisk masse.
+- [ ] **Treghet i systemet**: Tidsforsinkelse fra oppstart til effekt (avgjør hvor langt frem vi må predikere). ~421 liter totalt vannvolum gir betydelig termisk masse.
 - [ ] **Temperaturgrenser**: Hvilket område er "farlig"? (typisk 0 til -5 °C med fukt)
 - [ ] **Prioritet**: Optimalisere for energibruk eller for 100% sikkerhet mot is?
 
