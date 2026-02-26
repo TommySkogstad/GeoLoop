@@ -12,17 +12,40 @@ Spørsmål som må besvares før vi kan lage detaljert design og begynne å kode
 - [x] **CZ-TAW1**: Ikke kompatibel med G-generasjon (krever H-gen+ og CN-CNT-kontakt som ikke finnes på denne modellen).
 - [x] **HeishaMon**: Ikke kompatibel med G-generasjon. G-serien bruker annen protokoll (960 baud, invertert signal) enn H/J/K/L (9600 baud). Alternativ: aquarea_esphome (ubekreftet for G-serie).
 
+### Systemtopologi
+
+Buffertanken (200 L, udelt) er sentral node. To separate kretser:
+
+```
+     VP-krets                             Bakkesløyfe-krets
+
+┌─────────────────┐              ┌─────────────────────────┐
+│   Varmepumpe    │              │   Bakkeløyfe            │
+│  WH-MXC12G6E5  │              │   8 sløyfer, 900 m      │
+└──┬──────────▲───┘              └──┬──────────────▲───────┘
+   │          │                     │              │
+ T4(ut)    T3(inn)              T1(inn)         T2(ut)
+   │          │                     │              │
+   ▼          │                     ▼              │
+┌─────────────┴─────────────────────┴──────────────┴───────┐
+│                  Buffertank 200 L (T5)                    │
+│                  (udelt felles volum, føler kl. 15/16)    │
+└──────────────────────────────────────────────────────────┘
+
+Kolber 10 kW + 10 L tank på VP inngang (T3-siden)
+```
+
 ### Temperatursensorer — 5 målepunkter
 
 Rørfølere finnes, type ukjent — må sjekkes fysisk.
 
-| # | Plassering | Formål |
-|---|------------|--------|
-| T1 | Inn til varmesløyfe (bakke) | Turtemperatur til bakken |
-| T2 | Ut av varmesløyfe (bakke) | Returtemperatur fra bakken (delta-T → effekt) |
-| T3 | Inn til varmepumpe | Returvann til VP |
-| T4 | Ut av varmepumpe | Turvann fra VP |
-| T5 | Vanntank (200 L) | Buffertemperatur (VP klemme 15/16) |
+| # | Plassering | Krets | Formål |
+|---|------------|-------|--------|
+| T1 | Tank → bakkeløyfe | Bakkesløyfe | Turtemperatur til bakken |
+| T2 | Bakkeløyfe → tank | Bakkesløyfe | Returtemperatur fra bakken (delta-T → effekt) |
+| T3 | Tank → varmepumpe | VP | Returvann til VP (via kolbetank) |
+| T4 | Varmepumpe → tank | VP | Turvann fra VP |
+| T5 | Buffertank (200 L) | Felles | Buffertemperatur (VP klemme 15/16) |
 
 ### VP klemmerekke (fra servicemanual)
 

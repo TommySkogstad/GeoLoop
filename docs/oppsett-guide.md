@@ -248,21 +248,32 @@ For å nå dashboardet fra andre enheter på nettverket:
 
 ## Systemdiagram
 
+Buffertanken (200 L, udelt) er sentral node. To separate kretser møtes i tanken.
+
 ```
-                    T4 (ut av VP)
-                        │
-┌──────────┐      ┌─────▼─────┐      ┌──────────┐
-│ Vanntank │◄─────│ Varmepumpe│◄─────│ Bakke-   │
-│   (T5)   │      │ WH-MXC12 │      │ sløyfe   │
-│          │─────▶│ G6E5      │─────▶│          │
-└──────────┘      └─────┬─────┘      └──────────┘
-                        │                │    ▲
-                   T3 (inn til VP)   T1 (inn) T2 (ut)
+     VP-krets                             Bakkesløyfe-krets
+
+┌─────────────────┐              ┌─────────────────────────┐
+│   Varmepumpe    │              │   Bakkeløyfe            │
+│  WH-MXC12G6E5  │              │   8 sløyfer, 900 m      │
+└──┬──────────▲───┘              └──┬──────────────▲───────┘
+   │          │                     │              │
+ T4(ut)    T3(inn)              T1(inn)         T2(ut)
+   │          │                     │              │
+   ▼          │                     ▼              │
+┌─────────────┴─────────────────────┴──────────────┴───────┐
+│                  Buffertank 200 L (T5)                    │
+│                  (udelt felles volum, føler kl. 15/16)    │
+└──────────────────────────────────────────────────────────┘
+
+Kolber 10 kW + 10 L tank på VP inngang (T3-siden)
 
 Relé K1 ──── VP klemme 17/18 (ON/OFF)
 Relé K2 ──── Ekstern sirkulasjonspumpe
 Relé K3 ──── Ledig (kolber i fremtiden)
 ```
+
+**Vannvolum totalt: ~421 liter** (181 L sløyfe + 200 L buffer + 10 L kolbetank + ~30 L internrør)
 
 ---
 
