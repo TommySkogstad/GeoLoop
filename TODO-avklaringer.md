@@ -116,7 +116,7 @@ Alle DS18B20 (1-Wire digital), hardkoblet, på GPIO4.
 | Logging | Historikk for etteranalyse |
 | Grafer | Temperatur over tid — visuelt dashboard |
 | Statistikk | Driftstid, forbruksoversikt |
-| Integrasjon | Pljed (om mulig) |
+| Integrasjon | Plejd (om mulig) |
 
 ## 9. Tilleggskomponenter (ikke styrt)
 
