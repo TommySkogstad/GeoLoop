@@ -83,11 +83,11 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 | 2 | Ekstern sirkulasjonspumpe | Uavhengig av VP |
 | 3 | Ledig / kolber (fremtidig) | Reservert for utvidelse |
 
-## C. Infrastruktur på stedet — gjenstår
+## C. Infrastruktur på stedet (avklart)
 
-- [ ] **Strøm**: Har RPi tilgang til strøm der den skal monteres?
-- [ ] **Nettverk**: WiFi eller Ethernet tilgjengelig?
-- [ ] **Plassering**: Innendørs (teknisk rom) eller utendørs (kapsling nødvendig)?
+- [x] **Strøm**: Ja, tilgjengelig
+- [x] **Nettverk**: Både Ethernet og WiFi tilgjengelig
+- [x] **Plassering**: Innendørs (ingen kapsling nødvendig)
 
 ## C.5 Bakkeløyfe (avklart)
 
