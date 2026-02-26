@@ -115,6 +115,7 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 - [x] **Logging**: Ja — historikk som kan sjekkes i ettertid
 - [x] **Grafing**: Temperatur over tid — visuelt dashboard
 - [x] **Statistikk**: Driftsstatistikk og forbruksoversikt
+- [x] **Integrasjoner**: Pjeld (om mulig)
 
 ## F. Temperaturfølere (avklart)
 
