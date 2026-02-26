@@ -1,0 +1,14 @@
+location:
+  lat: 59.91
+  lon: 10.75
+
+weather:
+  user_agent: "GeoLoop/0.1 github.com/ditt-brukernavn/geoloop"
+  poll_interval_minutes: 30
+
+database:
+  path: "geoloop.db"
+
+web:
+  host: "0.0.0.0"
+  port: 8000
