@@ -17,22 +17,27 @@ Spørsmål som må besvares før vi kan lage detaljert design og begynne å kode
 Buffertanken (200 L, udelt) er sentral node. To separate kretser:
 
 ```
-     VP-krets                             Bakkesløyfe-krets
+     VP-krets                                  Bakkesløyfe-krets
 
-┌─────────────────┐              ┌─────────────────────────┐
-│   Varmepumpe    │              │   Bakkeløyfe            │
-│  WH-MXC12G6E5  │              │   8 sløyfer, 900 m      │
-└──┬──────────▲───┘              └──┬──────────────▲───────┘
-   │          │                     │              │
- T4(ut)    T3(inn)              T1(inn)         T2(ut)
-   │          │                     │              │
-   ▼          │                     ▼              │
-┌─────────────┴─────────────────────┴──────────────┴───────┐
-│                  Buffertank 200 L (T5)                    │
-│                  (udelt felles volum, føler kl. 15/16)    │
-└──────────────────────────────────────────────────────────┘
-
-Kolber 10 kW + 10 L tank på VP inngang (T3-siden)
+┌─────────────────┐                     ┌─────────────────────────┐
+│   Varmepumpe    │                     │   Bakkeløyfe            │
+│  WH-MXC12G6E5  │                     │   8 sløyfer, 900 m      │
+└──┬──────────▲───┘                     └──┬──────────────▲───────┘
+   │          │                            │              │
+ T4(ut)       │                        T1(inn)         T2(ut)
+   │     ┌────┴────────┐                  │              │
+   │     │ Kolbetank   │                  │              │
+   │     │ 10 L        │                  │              │
+   │     │ 10 kW kolber│                  │              │
+   │     └────▲────────┘                  │              │
+   │          │                            │              │
+   │       T3(inn)                         │              │
+   │          │                            │              │
+   ▼          │                            ▼              │
+┌─────────────┴────────────────────────────┴──────────────┴───────┐
+│                    Buffertank 200 L (T5)                         │
+│                    (udelt felles volum, føler kl. 15/16)         │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Temperatursensorer — 5 målepunkter
