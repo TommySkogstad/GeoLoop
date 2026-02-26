@@ -100,6 +100,7 @@ Rørfølere finnes, type ukjent — må sjekkes fysisk.
 - [x] **Internrør**: ~30 liter (rør mellom komponenter internt i systemet)
 - [x] **Totalt vannvolum**: ~421 liter (181 L sløyfe + 200 L buffer + 10 L kolbetank + ~30 L internrør)
 - [x] **Areal**: ~90 m² dekket av bakkeløyfen
+- [x] **Legging**: Rør i sand, 5 cm under overflaten, asfalt over
 
 ## D. Prediktiv logikk — gjenstår
 
