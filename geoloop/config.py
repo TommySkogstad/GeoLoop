@@ -30,11 +30,39 @@ class WebConfig:
 
 
 @dataclass
+class RelayConfig:
+    gpio_pin: int
+    active_high: bool = True
+
+
+@dataclass
+class SensorConfig:
+    id: str
+
+
+@dataclass
+class GroundLoopConfig:
+    loops: int = 8
+    total_length_m: int = 900
+    pipe_outer_mm: int = 20
+    pipe_wall_mm: int = 2
+
+
+@dataclass
+class TankConfig:
+    volume_liters: int = 200
+
+
+@dataclass
 class AppConfig:
     location: LocationConfig
     weather: WeatherConfig
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
     web: WebConfig = field(default_factory=WebConfig)
+    relays: dict[str, RelayConfig] | None = None
+    sensors: dict[str, SensorConfig] | None = None
+    ground_loop: GroundLoopConfig | None = None
+    tank: TankConfig | None = None
 
 
 def load_config(path: Path | None = None) -> AppConfig:
@@ -56,9 +84,33 @@ def load_config(path: Path | None = None) -> AppConfig:
 
     raw = yaml.safe_load(path.read_text())
 
+    relays = None
+    if "relays" in raw:
+        relays = {
+            name: RelayConfig(**cfg) for name, cfg in raw["relays"].items()
+        }
+
+    sensors = None
+    if "sensors" in raw:
+        sensors = {
+            name: SensorConfig(**cfg) for name, cfg in raw["sensors"].items()
+        }
+
+    ground_loop = None
+    if "ground_loop" in raw:
+        ground_loop = GroundLoopConfig(**raw["ground_loop"])
+
+    tank = None
+    if "tank" in raw:
+        tank = TankConfig(**raw["tank"])
+
     return AppConfig(
         location=LocationConfig(**raw["location"]),
         weather=WeatherConfig(**raw["weather"]),
         database=DatabaseConfig(**raw.get("database", {})),
         web=WebConfig(**raw.get("web", {})),
+        relays=relays,
+        sensors=sensors,
+        ground_loop=ground_loop,
+        tank=tank,
     )

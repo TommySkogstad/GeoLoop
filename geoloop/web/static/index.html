@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoLoop Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1>GeoLoop</h1>
+        <span id="last-update" class="meta">Laster...</span>
+    </header>
+
+    <main>
+        <!-- Statuskort -->
+        <section class="card status-card" id="status-card">
+            <h2>Varmesystem</h2>
+            <div class="status-indicator" id="heating-status">
+                <span class="dot"></span>
+                <span class="label">Ukjent</span>
+            </div>
+            <div class="controls">
+                <button id="btn-on" onclick="heatingOn()">Slå PÅ</button>
+                <button id="btn-off" onclick="heatingOff()">Slå AV</button>
+            </div>
+        </section>
+
+        <!-- Vær -->
+        <section class="card">
+            <h2>Vær nå</h2>
+            <div class="grid weather-grid">
+                <div class="stat">
+                    <span class="stat-value" id="w-temp">--</span>
+                    <span class="stat-label">Temperatur</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="w-precip">--</span>
+                    <span class="stat-label">Nedbør</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="w-humidity">--</span>
+                    <span class="stat-label">Fuktighet</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="w-wind">--</span>
+                    <span class="stat-label">Vind</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sensorer -->
+        <section class="card">
+            <h2>Sensorer</h2>
+            <div class="grid sensor-grid" id="sensor-grid">
+                <p class="meta">Laster sensordata...</p>
+            </div>
+        </section>
+
+        <!-- Prognose -->
+        <section class="card">
+            <h2>24t prognose</h2>
+            <canvas id="forecast-chart" width="600" height="200"></canvas>
+        </section>
+
+        <!-- Hendelseslogg -->
+        <section class="card">
+            <h2>Hendelseslogg</h2>
+            <div id="event-log" class="event-log">
+                <p class="meta">Laster hendelser...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -10,7 +10,9 @@ class Store:
 
     def __init__(self, path: str | Path = ":memory:") -> None:
         self._conn = sqlite3.connect(
-            str(path), detect_types=sqlite3.PARSE_DECLTYPES
+            str(path),
+            detect_types=sqlite3.PARSE_DECLTYPES,
+            check_same_thread=False,
         )
         self._conn.row_factory = sqlite3.Row
         self._create_tables()
