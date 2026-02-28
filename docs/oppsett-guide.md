@@ -1,6 +1,8 @@
 # GeoLoop — Oppsettguide
 
-Steg-for-steg-guide for å sette opp Raspberry Pi 3B+ med temperatursensorer, RPi Relay Board og GeoLoop-programvaren.
+Steg-for-steg-guide for å sette opp Raspberry Pi 3B+ med DS18B20-sensorer, RPi Relay Board og GeoLoop-programvaren via Docker.
+
+Se [koblingsskjema.md](koblingsskjema.md) for detaljerte koblingsdiagrammer.
 
 ---
 
@@ -10,36 +12,41 @@ Steg-for-steg-guide for å sette opp Raspberry Pi 3B+ med temperatursensorer, RP
 |---|-----------|--------|---------|
 | 1 | Raspberry Pi 3B+ | BCM2837B0, 1 GB RAM | Styringsenhet |
 | 2 | RPi Relay Board | 3 kanaler (HAT-format) | Sitter direkte på GPIO-header |
-| 3 | Open-Smart GPIO Expansion Board | | Ekstra GPIO-pinner til sensorer |
+| 3 | Open-Smart GPIO Expansion Board | — | Gir tilgang til GPIO4 under relay board-HAT |
 | 4 | Micro-SD-kort (32 GB+) | SanDisk Extreme anbefalt | OS og programvare |
 | 5 | USB Micro-B strømforsyning (5V/2.5A) | Offisiell RPi 3B+ PSU | Strøm til RPi |
-| 6 | DS18B20 temperatursensorer (vanntett) | Rørfølere, 5 stk | Tur/retur + tank |
+| 6 | DS18B20 temperatursensorer (vanntett) | Rørfølere, 5 stk | T1–T5 |
 | 7 | 4,7 kΩ motstand | For 1-Wire pull-up | 1 stk |
-| 8 | Ethernet-kabel eller WiFi-tilgang | Cat5e/Cat6 | Nettverk |
+| 8 | Ethernet-kabel | Cat5e/Cat6 | Anbefalt fremfor WiFi |
 
 ---
 
-## Del 1: Raspberry Pi grunnoppsett
+## Del 1: Raspberry Pi — grunnoppsett
 
 ### 1.1 Installer operativsystem
 
 1. Last ned [Raspberry Pi Imager](https://www.raspberrypi.com/software/) på din PC/Mac
-2. Sett inn micro-SD-kortet i PC-en
+2. Sett inn micro-SD-kortet
 3. I Imager:
-   - Velg **Raspberry Pi OS Lite (64-bit)** (vi trenger ikke desktop)
-   - Klikk tannhjulet og konfigurer:
-     - Brukernavn og passord
-     - WiFi (SSID + passord) hvis du ikke bruker Ethernet
+   - Enhet: **Raspberry Pi 3**
+   - OS: **Raspberry Pi OS Lite (64-bit)** — ingen desktop nødvendig
+   - Klikk tannhjulet → konfigurer:
+     - Brukernavn og passord (noter disse!)
+     - WiFi hvis du ikke bruker Ethernet
      - Aktiver SSH
-     - Sett riktig tidssone (`Europe/Oslo`)
+     - Tidssone: `Europe/Oslo`
 4. Skriv til SD-kortet
 
 ### 1.2 Første oppstart
 
 1. Sett SD-kortet i RPi
-2. Koble til Ethernet (eller bruk WiFi fra steg 1.1)
-3. Koble til strøm
-4. Finn RPi-ens IP-adresse (sjekk ruteren, eller bruk `ping raspberrypi.local`)
+2. Koble til Ethernet og strøm
+3. Vent ca. 60 sekunder til RPi starter opp
+4. Finn IP-adressen:
+   ```bash
+   ping raspberrypi.local
+   # Eller sjekk ruterens DHCP-liste
+   ```
 5. SSH inn:
    ```bash
    ssh brukernavn@raspberrypi.local
@@ -49,206 +56,289 @@ Steg-for-steg-guide for å sette opp Raspberry Pi 3B+ med temperatursensorer, RP
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3 python3-venv git
+sudo apt install -y git curl
+```
+
+### 1.4 Aktiver 1-Wire for DS18B20-sensorer
+
+```bash
+sudo nano /boot/firmware/config.txt
+```
+
+Legg til nederst:
+```
+dtoverlay=w1-gpio,gpiopin=4
+```
+
+Start på nytt:
+```bash
+sudo reboot
 ```
 
 ---
 
-## Del 2: Temperatursensorer
+## Del 2: Koble til DS18B20-sensorer
 
-5 temperatursensorer plasseres i systemet. Hvis sensorene er DS18B20 (1-Wire), kobles alle parallelt på samme datapinne.
+> Se [koblingsskjema.md](koblingsskjema.md) for detaljert diagram.
 
-### 2.1 Sensorplassering
+Alle 5 sensorer kobles **parallelt** på GPIO4 via Open-Smart GPIO Expansion Board:
 
-| # | Plassering | Formål |
-|---|------------|--------|
-| T1 | Inn til varmesløyfe (bakke) | Turtemperatur til bakken |
-| T2 | Ut av varmesløyfe (bakke) | Returtemperatur fra bakken |
-| T3 | Inn til varmepumpe | Returvann til VP |
-| T4 | Ut av varmepumpe | Turvann fra VP |
-| T5 | Vanntank | Buffertemperatur |
+- **Rød** → 3.3V
+- **Svart** → GND
+- **Gul** → GPIO4 (+ én 4,7 kΩ pull-up motstand til 3.3V)
 
-### 2.2 Koblingsskjema (DS18B20)
-
-```
-DS18B20 (x5)         Raspberry Pi 3B+
-─────────────        ──────────────────
-VDD (rød)    ───────  3.3V (pin 1)
-GND (svart)  ───────  GND  (pin 6)
-DATA (gul)   ───┬───  GPIO4 (pin 7)
-                │
-                ├── 4,7 kΩ motstand ── 3.3V (pin 1)
-                │
-           (pull-up, 1 stk for alle sensorer)
-```
-
-> **Tips:** Alle 5 DS18B20-sensorer kobles parallelt på samme datapinne (GPIO4). Hver sensor har en unik ID som brukes til å identifisere dem.
-
-### 2.3 Aktiver 1-Wire
-
-1. Rediger boot-konfig:
-   ```bash
-   sudo nano /boot/firmware/config.txt
-   ```
-2. Legg til nederst:
-   ```
-   dtoverlay=w1-gpio,gpiopin=4
-   ```
-3. Start på nytt:
-   ```bash
-   sudo reboot
-   ```
-
-### 2.4 Verifiser sensorene
+### 2.1 Verifiser at sensorene er oppdaget
 
 ```bash
-# Last 1-Wire-moduler
+# Last 1-Wire-moduler (gjøres automatisk etter reboot med dtoverlay)
 sudo modprobe w1-gpio
 sudo modprobe w1-therm
 
-# List sensorer (skal vise en mappe per sensor, f.eks. 28-xxxxxxxxxxxx)
+# Skal vise én mappe per sensor, f.eks. 28-01234567890a
 ls /sys/bus/w1/devices/
-
-# Les temperatur fra alle sensorer
-cat /sys/bus/w1/devices/28-*/w1_slave
 ```
 
-Forventet output (siste linje per sensor):
+Forventet output:
 ```
-t=21375
-```
-Det betyr 21,375 °C.
-
-> **Merk:** Hvis rørfølerne er PT1000 eller NTC (ikke DS18B20), trengs en ADC-konverter (analog-digital). Se seksjon F i [TODO-avklaringer.md](../TODO-avklaringer.md) for hvordan du identifiserer sensortypen.
-
----
-
-## Del 3: RPi Relay Board
-
-RPi Relay Board er et HAT-format kort som sitter direkte på GPIO-headeren til RPi 3B+. Det har 3 uavhengige relékanaler.
-
-### 3.1 Montering
-
-1. Slå av RPi
-2. Sett RPi Relay Board forsiktig ned på GPIO-headeren
-3. Sjekk at alle pinner sitter riktig
-
-> **NB:** GPIO-pinnene som relay board-et bruker varierer mellom produsenter. Sjekk databladet for ditt spesifikke kort og noter hvilke GPIO-pinner som styrer kanal 1, 2 og 3.
-
-### 3.2 Relékanaler
-
-| Kanal | Funksjon | Tilkobling |
-|-------|----------|------------|
-| 1 | Varmepumpe ON/OFF | VP klemme 17/18 (ekstern kontrollkabel) |
-| 2 | Ekstern sirkulasjonspumpe | Separat styring |
-| 3 | Ledig | Reservert for fremtidig bruk (kolber) |
-
-### 3.3 Koble relé til varmepumpe
-
-VP-ens ekstern kontrollkabel (2 ledere fra klemme 17/18) kobles til relé kanal 1:
-
-```
-Panasonic WH-MXC12G6E5          RPi Relay Board
-Klemmerekke                      Kanal 1
-┌──────────────────┐             ┌─────────────────┐
-│  Klemme 17 ──────┼─── leder ──┤ NO              │
-│  Klemme 18 ──────┼─── leder ──┤ COM             │◄── GPIO fra RPi
-└──────────────────┘             └─────────────────┘
-
-Relé lukket (17↔18 kortsluttet) → VP er PÅ
-Relé åpent  (17↔18 brutt)       → VP er AV
+28-01234567890a  28-01234567890b  28-01234567890c  28-01234567890d  28-01234567890e  w1_bus_master1
 ```
 
-> **Viktig:** Fjern fabrikkjumperen mellom klemme 17 og 18 på VP-en før du kobler til reléet. Klemme 17/18 er lavspenning potensialfri kontakt — ingen 230V involvert, trygt å koble selv.
+Ikke 5 sensorer? Sjekk:
+- Kabling (spesielt pull-up motstanden)
+- At `dtoverlay=w1-gpio,gpiopin=4` er i `/boot/firmware/config.txt`
+- At RPi er rebooted etter endringen
 
-### 3.4 Test reléet
+### 2.2 Les temperatur og noter sensor-IDer
 
 ```bash
-# Erstatt GPIO_PIN med faktisk pinne for kanal 1 på ditt relay board
-GPIO_PIN=17
+for f in /sys/bus/w1/devices/28-*/w1_slave; do
+    id=$(echo $f | grep -oP '28-[a-f0-9]+')
+    temp=$(grep -oP 't=\K[0-9]+' $f)
+    echo "$id  →  $(echo "scale=3; $temp/1000" | bc) °C"
+done
+```
 
-echo $GPIO_PIN | sudo tee /sys/class/gpio/export
-echo out | sudo tee /sys/class/gpio/gpio${GPIO_PIN}/direction
+**Skriv ned hvilken sensor-ID som tilhører hvilken plassering** (T1–T5). Gjør dette ved å holde en sensor i hånden (varmere) og se hvilken ID som skiller seg ut.
 
-# Slå på (du skal høre et klikk fra reléet)
-echo 1 | sudo tee /sys/class/gpio/gpio${GPIO_PIN}/value
+---
 
-# Slå av
-echo 0 | sudo tee /sys/class/gpio/gpio${GPIO_PIN}/value
+## Del 3: Koble til RPi Relay Board
 
-# Rydd opp
-echo $GPIO_PIN | sudo tee /sys/class/gpio/unexport
+> Se [koblingsskjema.md](koblingsskjema.md) for detaljert diagram.
+
+Relay board-et sitter som HAT direkte på RPi GPIO-headeren. GeoLoop bruker:
+
+| Kanal | BCM GPIO | Funksjon              |
+|-------|----------|-----------------------|
+| K1    | GPIO 26  | Varmepumpe (klemme 17/18) |
+| K2    | GPIO 20  | Sirkulasjonspumpe     |
+| K3    | GPIO 21  | Ledig (reserve)       |
+
+### 3.1 Koble relé K1 til varmepumpe
+
+1. Slå av VP på strømbryteren
+2. Åpne VP-dekselet (se servicemanual)
+3. Finn klemme 17 og 18 — **fjern fabrikkjumperen** mellom dem
+4. Koble to ledere: klemme 17 → NO, klemme 18 → COM på K1
+5. Lukk dekselet og slå på igjen
+
+### 3.2 Test reléene manuelt
+
+```bash
+# Installer GPIO-verktøy
+sudo apt install -y python3-gpiozero
+
+python3 - <<'EOF'
+from gpiozero import OutputDevice
+import time
+
+k1 = OutputDevice(26)   # Varmepumpe
+k2 = OutputDevice(20)   # Sirkulasjonspumpe
+
+print("K1 PÅ (VP) — hør et klikk")
+k1.on(); time.sleep(2)
+print("K1 AV")
+k1.off(); time.sleep(1)
+
+print("K2 PÅ (Pumpe)")
+k2.on(); time.sleep(2)
+print("K2 AV")
+k2.off()
+EOF
+```
+
+Du skal høre et klikk fra hvert relé. VP skal starte når K1 er PÅ (forutsatt at fabrikkjumperen er fjernet).
+
+---
+
+## Del 4: Installer Docker
+
+```bash
+# Installer Docker
+curl -fsSL https://get.docker.com | sh
+
+# Legg til brukeren i docker-gruppen
+sudo usermod -aG docker $USER
+
+# Logg ut og inn igjen for at gruppeendringen skal gjelde
+exit
+```
+
+SSH inn igjen, og verifiser:
+```bash
+docker --version
+docker compose version
 ```
 
 ---
 
-## Del 4: Installer GeoLoop
+## Del 5: Sett opp GeoLoop
 
-### 4.1 Klon prosjektet
+### 5.1 Klon prosjektet
 
 ```bash
 cd ~
-git clone <repo-url> GeoLoop
+git clone https://github.com/TommySkogstad/GeoLoop
 cd GeoLoop
 ```
 
-### 4.2 Kjør installasjonscriptet
+### 5.2 Cloudflare Tunnel (for ekstern tilgang)
+
+1. Gå til [Cloudflare Zero Trust](https://one.dash.cloudflare.com) → **Networks → Tunnels → Create a tunnel**
+2. Navn: `geoloop`, type: Docker
+3. Under **Public Hostnames**: legg til `geoloop.tommytv.no` → `http://geoloop:8000`
+4. Kopier tunnel-tokenet
 
 ```bash
-sudo bash scripts/install.sh
+cp .env.example .env
+nano .env
 ```
 
-Dette gjør:
-- Oppretter Python virtualenv
-- Installerer alle avhengigheter
-- Kopierer `config.example.yaml` til `config.yaml`
-- Registrerer `geoloop` som systemd-tjeneste
-
-### 4.3 Konfigurer
-
-Rediger `config.yaml` med dine verdier:
-
-```bash
-nano ~/GeoLoop/config.yaml
+Lim inn:
+```
+CLOUDFLARE_TUNNEL_TOKEN=eyJh...tokenet ditt...
 ```
 
-Se [config.example.yaml](../config.example.yaml) for alle tilgjengelige innstillinger.
-
-> **Finn koordinater:** Gå til [norgeskart.no](https://norgeskart.no), høyreklikk på din lokasjon, og kopier koordinatene.
-
-### 4.4 Start tjenesten
+### 5.3 Konfigurer GeoLoop
 
 ```bash
-sudo systemctl start geoloop
+cp config.example.yaml config.yaml
+nano config.yaml
 ```
 
-### 4.5 Verifiser at alt kjører
+Fyll inn:
+
+```yaml
+location:
+  lat: 59.2732    # Din breddegrad (hent fra norgeskart.no)
+  lon: 10.4810    # Din lengdegrad
+
+database:
+  path: "/app/data/geoloop.db"   # Bruk denne stien i Docker
+
+sensors:
+  loop_inlet:
+    id: "28-SENSOR_ID_HER"       # T1 — sensor-ID fra steg 2.2
+  loop_outlet:
+    id: "28-SENSOR_ID_HER"       # T2
+  hp_inlet:
+    id: "28-SENSOR_ID_HER"       # T3
+  hp_outlet:
+    id: "28-SENSOR_ID_HER"       # T4
+  tank:
+    id: "28-SENSOR_ID_HER"       # T5
+
+relays:
+  heat_pump:
+    gpio_pin: 26
+    active_high: true
+  circulation_pump:
+    gpio_pin: 20
+    active_high: true
+  spare:
+    gpio_pin: 21
+    active_high: true
+```
+
+> **Finn koordinater:** Gå til [norgeskart.no](https://norgeskart.no), høyreklikk på din lokasjon → kopier koordinater.
+
+### 5.4 Start GeoLoop
 
 ```bash
-# Sjekk tjenestestatus
-sudo systemctl status geoloop
+docker compose up -d --build
+```
 
-# Sjekk logg
-journalctl -u geoloop -f
+Sjekk at begge containere er oppe:
+```bash
+docker compose ps
+```
 
-# Test API-et (fra RPi eller annen maskin på nettverket)
-curl http://raspberrypi.local:8000/api/status
+Forventet:
+```
+NAME                    STATUS
+geoloop-geoloop-1       Up (healthy)
+geoloop-cloudflared-1   Up
 ```
 
 ---
 
-## Del 5: Nettverkstilgang
+## Del 6: Verifiser at alt fungerer
 
-For å nå dashboardet fra andre enheter på nettverket:
+```bash
+# Sjekk logger
+docker compose logs geoloop --tail 30
 
-1. Finn RPi-ens IP: `hostname -I`
-2. Åpne nettleser på PC/mobil: `http://<ip-adresse>:8000/api/status`
+# Test API lokalt
+curl http://localhost:8000/api/status
+
+# Test via Cloudflare Tunnel (fra PC eller mobil)
+curl https://geoloop.tommytv.no/api/status
+```
+
+Forventet output fra `/api/status`:
+```json
+{
+  "heating": { "on": false },
+  "weather": { "air_temperature": 3.2, ... },
+  "sensors": {
+    "loop_inlet": 0.5,
+    "loop_outlet": 4.2,
+    ...
+  }
+}
+```
+
+Hvis sensor-verdier viser `null`, sjekk at sensor-ID-ene i `config.yaml` stemmer med det som ligger i `/sys/bus/w1/devices/`.
+
+---
+
+## Del 7: Automatisk oppstart
+
+Docker starter automatisk ved oppstart av RPi så lenge `restart: unless-stopped` er satt i `docker-compose.yml` (allerede konfigurert).
+
+Verifiser:
+```bash
+sudo systemctl enable docker
+sudo systemctl status docker
+```
+
+---
+
+## Feilsøking
+
+| Problem | Løsning |
+|---------|---------|
+| Sensor vises ikke i `/sys/bus/w1/devices/` | Sjekk kabling og pull-up motstand. Sjekk at `dtoverlay=w1-gpio,gpiopin=4` er i `config.txt`. Reboot. |
+| Sensor-verdi er `null` i API | Sensor-ID i `config.yaml` stemmer ikke — kjør `ls /sys/bus/w1/devices/` og oppdater config. |
+| Relé klikker ikke | Sjekk GPIO-pinne mot databladet for ditt relay board. Kjør manuell test fra steg 3.2. |
+| VP starter ikke når relé lukker | Sjekk at fabrikkjumperen mellom klemme 17/18 er fjernet. |
+| Cloudflare Tunnel kobler ikke til | Sjekk token i `.env`. Logg inn på Cloudflare Zero Trust og verifiser at tunnelen er aktiv. |
+| `docker compose up` feiler | Kjør `docker compose logs` for feilmelding. Sjekk at `config.yaml` er gyldig YAML. |
+| Dashboardet viser ikke graf | Tøm nettleser-cache (Ctrl+Shift+R). Historikk bygges opp gradvis fra første syklus (10 min). |
 
 ---
 
 ## Systemdiagram
-
-Buffertanken (200 L, udelt) er sentral node. To separate kretser møtes i tanken.
 
 ```
      VP-krets                                  Bakkesløyfe-krets
@@ -258,42 +348,31 @@ Buffertanken (200 L, udelt) er sentral node. To separate kretser møtes i tanken
 │  WH-MXC12G6E5  │                     │   8 sløyfer, 900 m      │
 └──┬──────────▲───┘                     └──┬──────────────▲───────┘
    │          │                            │              │
- T4(ut)       │                        T1(inn)         T2(ut)
+  T4(ut)      │                        T1(inn)         T2(ut)
    │     ┌────┴────────┐                  │              │
    │     │ Kolbetank   │                  │              │
    │     │ 10 L        │                  │              │
    │     │ 10 kW kolber│                  │              │
    │     └────▲────────┘                  │              │
-   │          │                            │              │
-   │       T3(inn)                         │              │
-   │          │                            │              │
-   ▼          │                            ▼              │
-┌─────────────┴────────────────────────────┴──────────────┴───────┐
-│                    Buffertank 200 L (T5)                         │
-│                    (udelt felles volum, føler kl. 15/16)         │
-└─────────────────────────────────────────────────────────────────┘
+   │          │                           │              │
+   │       T3(inn)                        │              │
+   │          │                           │              │
+   ▼          │                           ▼              │
+┌─────────────┴───────────────────────────┴──────────────┴──────┐
+│                    Buffertank 200 L (T5)                        │
+└────────────────────────────────────────────────────────────────┘
 
-Relé K1 ──── VP klemme 17/18 (ON/OFF)
-Relé K2 ──── Ekstern sirkulasjonspumpe
-Relé K3 ──── Ledig (kolber i fremtiden)
+Relé K1 (GPIO26) ──── VP klemme 17/18 (ON/OFF)
+Relé K2 (GPIO20) ──── Ekstern sirkulasjonspumpe
+Relé K3 (GPIO21) ──── Ledig (kolber i fremtiden)
 ```
 
-**Vannvolum totalt: ~421 liter** (181 L sløyfe + 200 L buffer + 10 L kolbetank + ~30 L internrør)
+**Totalt vannvolum: ~421 liter** (181 L sløyfe + 200 L buffer + 10 L kolbetank + ~30 L internrør)
 
 ---
 
-## Feilsøking
-
-| Problem | Løsning |
-|---------|---------|
-| Sensor vises ikke i `/sys/bus/w1/devices/` | Sjekk kabling og at `dtoverlay=w1-gpio` er i config.txt. Reboot. |
-| Relé klikker ikke | Sjekk GPIO-pinne mot databladet for ditt relay board. |
-| VP starter ikke når relé lukker | Sjekk at fabrikkjumper mellom klemme 17/18 er fjernet. |
-| `geoloop`-tjenesten starter ikke | Kjør `journalctl -u geoloop -e` for feilmelding. Sjekk at config.yaml er gyldig. |
-| Kan ikke nå web-API fra annen maskin | Sjekk at `host: "0.0.0.0"` i config. Sjekk brannmur: `sudo ufw status`. |
-| Værdata returnerer feil | Sjekk at `user_agent` er satt (api.met.no krever dette). |
-
 ## Referansedokumentasjon
 
-- [docs/CZ-TAW1-OI-1.pdf](CZ-TAW1-OI-1.pdf) — Panasonic CZ-TAW1 nettverksadapter (ikke kompatibel med G-gen)
+- [koblingsskjema.md](koblingsskjema.md) — Detaljerte koblingsdiagrammer
 - [docs/SM-WHMXC09G3E5_WH-MXC12G6E5.pdf](SM-WHMXC09G3E5_WH-MXC12G6E5.pdf) — Servicemanual for Panasonic WH-MXC12G6E5
+- [docs/CZ-TAW1-OI-1.pdf](CZ-TAW1-OI-1.pdf) — Panasonic CZ-TAW1 nettverksadapter (ikke kompatibel med G-gen)

@@ -214,11 +214,11 @@
 
     function updateHistory() {
         fetchJSON("/api/history?hours=" + historyHours).then(function (data) {
-            drawHistoryChart(data.sensors || []);
+            drawHistoryChart(data.sensors || [], data.heating_periods || [], !!data.heating_on);
         }).catch(function () { /* ignore */ });
     }
 
-    function drawHistoryChart(rows) {
+    function drawHistoryChart(rows, heatingPeriods, heatingOn) {
         var canvas = document.getElementById("history-chart");
         if (!canvas) return;
         var ctx = canvas.getContext("2d");
@@ -267,6 +267,32 @@
 
         function xP(t) { return pad.left + (t - tMin) / (tMax - tMin) * cw; }
         function yP(v) { return pad.top  + (1 - (v - vMin) / (vMax - vMin)) * ch; }
+
+        // Varme-PÅ overlay (grønt bakgrunnsband)
+        var hSpans = [];
+        var hStart = null;
+        if (heatingPeriods.length === 0) {
+            if (heatingOn) hSpans.push([tMin, tMax]);
+        } else {
+            var firstType = heatingPeriods[0].event_type;
+            if (firstType === "heating_off" || firstType === "manual_off") {
+                hStart = tMin; // varme var PÅ ved starten av vinduet
+            }
+            for (var p = 0; p < heatingPeriods.length; p++) {
+                var ev = heatingPeriods[p];
+                var et = Math.max(tMin, Math.min(tMax, new Date(ev.timestamp).getTime()));
+                var evOn = ev.event_type === "heating_on" || ev.event_type === "manual_on";
+                if (evOn && hStart === null) { hStart = et; }
+                else if (!evOn && hStart !== null) { hSpans.push([hStart, et]); hStart = null; }
+            }
+            if (hStart !== null) hSpans.push([hStart, tMax]);
+        }
+        ctx.fillStyle = "rgba(0, 200, 83, 0.13)";
+        for (var sp = 0; sp < hSpans.length; sp++) {
+            var sx1 = xP(hSpans[sp][0]);
+            var sx2 = xP(hSpans[sp][1]);
+            ctx.fillRect(sx1, pad.top, sx2 - sx1, ch);
+        }
 
         // Rutenett og y-akse
         ctx.strokeStyle = "rgba(255,255,255,0.06)";
