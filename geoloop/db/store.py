@@ -40,8 +40,6 @@ class Store:
 
             CREATE INDEX IF NOT EXISTS idx_sensor_log_ts
                 ON sensor_log (timestamp);
-            CREATE INDEX IF NOT EXISTS idx_sensor_log_compacted
-                ON sensor_log (compacted, timestamp);
 
             CREATE TABLE IF NOT EXISTS system_events (
                 id         INTEGER PRIMARY KEY AUTOINCREMENT,
