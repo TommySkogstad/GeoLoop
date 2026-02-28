@@ -318,12 +318,21 @@
             ctx.fillText(gv.toFixed(0) + "\u00b0", pad.left - 4, gy + 4);
         }
 
-        // x-akse tidsetiketter — faste tidsintervaller
+        // x-akse tidsetiketter — faste tidsintervaller med minimum avstand
         ctx.textAlign = "center";
         var cfg = PERIOD_CFG[historyHours] || PERIOD_CFG[24];
         var interval = cfg.intervalMs;
+        // Sørg for minimum 55px mellom labels for å unngå overlapp
+        var minLabelPx = 55;
+        var pxPerMs = cw / (tMax - tMin);
+        while (interval * pxPerMs < minLabelPx) {
+            interval *= 2;
+        }
         var firstLabel = Math.ceil(tMin / interval) * interval;
         for (var t = firstLabel; t <= tMax; t += interval) {
+            // Ikke tegn label for nær kantene
+            var lx = xP(t);
+            if (lx < pad.left + 15 || lx > pad.left + cw - 15) continue;
             var d = new Date(t);
             var lbl;
             if (cfg.fmt === "ddd") {
@@ -333,7 +342,7 @@
             } else {
                 lbl = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
             }
-            ctx.fillText(lbl, xP(t), H - 4);
+            ctx.fillText(lbl, lx, H - 4);
         }
 
         // Linjer + etiketter på høyre kant
