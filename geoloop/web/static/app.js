@@ -208,12 +208,23 @@
 
     var historyHours = 24;
 
+    var PERIOD_CFG = {
+        1:   { limit: 120, intervalMs: 5 * 60000,   fmt: "HH:MM" },
+        6:   { limit: 120, intervalMs: 30 * 60000,  fmt: "HH:MM" },
+        24:  { limit: 120, intervalMs: 2 * 3600000, fmt: "HH:00" },
+        168: { limit: 70,  intervalMs: 24 * 3600000, fmt: "ddd" }
+    };
+
+    var NORSK_DAGER = ["søn", "man", "tir", "ons", "tor", "fre", "lør"];
+
     var H_KEYS   = ["loop_inlet", "loop_outlet", "hp_inlet", "hp_outlet", "tank"];
     var H_COLORS = ["#42a5f5",    "#66bb6a",     "#ef5350",  "#ff9800",   "#ab47bc"];
     var H_LABELS = ["Sløyfe inn", "Sløyfe ut",   "VP inn",   "VP ut",     "Tank"];
 
     function updateHistory() {
-        fetchJSON("/api/history?hours=" + historyHours).then(function (data) {
+        var cfg = PERIOD_CFG[historyHours] || PERIOD_CFG[24];
+        var url = "/api/history?hours=" + historyHours + "&limit=" + cfg.limit;
+        fetchJSON(url).then(function (data) {
             drawHistoryChart(data.sensors || [], data.heating_periods || [], !!data.heating_on);
         }).catch(function () { /* ignore */ });
     }
@@ -307,13 +318,22 @@
             ctx.fillText(gv.toFixed(0) + "\u00b0", pad.left - 4, gy + 4);
         }
 
-        // x-akse tidsetiketter
+        // x-akse tidsetiketter — faste tidsintervaller
         ctx.textAlign = "center";
-        var xStep = Math.max(1, Math.floor(rows.length / 6));
-        for (var i = 0; i < rows.length; i += xStep) {
-            var d = new Date(times[i]);
-            var lbl = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
-            ctx.fillText(lbl, xP(times[i]), H - 4);
+        var cfg = PERIOD_CFG[historyHours] || PERIOD_CFG[24];
+        var interval = cfg.intervalMs;
+        var firstLabel = Math.ceil(tMin / interval) * interval;
+        for (var t = firstLabel; t <= tMax; t += interval) {
+            var d = new Date(t);
+            var lbl;
+            if (cfg.fmt === "ddd") {
+                lbl = NORSK_DAGER[d.getDay()] + " " + d.getDate() + "." + (d.getMonth() + 1);
+            } else if (cfg.fmt === "HH:00") {
+                lbl = String(d.getHours()).padStart(2, "0") + ":00";
+            } else {
+                lbl = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+            }
+            ctx.fillText(lbl, xP(t), H - 4);
         }
 
         // Linjer + etiketter på høyre kant

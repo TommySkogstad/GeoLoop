@@ -209,7 +209,7 @@ async def heating_off() -> dict:
 
 
 @app.get("/api/history")
-async def history(hours: int = 24) -> dict:
+async def history(hours: int = 24, limit: int = 0) -> dict:
     """Sensorhistorikk og VP-perioder for tidsserie-graf."""
     if not _store:
         return {"error": "Database ikke konfigurert"}
@@ -219,7 +219,7 @@ async def history(hours: int = 24) -> dict:
         heating_on = await _controller.is_on()
 
     return {
-        "sensors": _store.get_sensor_history(hours=hours),
+        "sensors": _store.get_sensor_history(hours=hours, limit=limit),
         "heating_periods": _store.get_heating_periods(hours=hours),
         "heating_on": heating_on,
     }

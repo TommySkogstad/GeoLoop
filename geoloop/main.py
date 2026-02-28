@@ -104,6 +104,30 @@ async def _read_all_sensors(
     )
 
 
+async def _sensor_poll(
+    store: Store,
+    sensors: dict[str, TemperatureSensor],
+) -> None:
+    """Les alle sensorer og logg til database (kjøres hvert minutt)."""
+    try:
+        cycle_ts = datetime.now(timezone.utc)
+        for name, sensor in sensors.items():
+            value = await sensor.read()
+            if value is not None:
+                store.log_sensor(name, value, timestamp=cycle_ts)
+    except Exception:
+        logger.exception("Feil i sensorpolling")
+
+
+def _run_compaction(store: Store) -> None:
+    """Kjør rullerende kompaktering av sensordata."""
+    try:
+        store.compact_sensor_data()
+        logger.info("Kompaktering av sensordata fullført")
+    except Exception:
+        logger.exception("Feil i kompaktering")
+
+
 async def _control_loop(
     met_client: MetClient,
     store: Store,
@@ -114,13 +138,8 @@ async def _control_loop(
 ) -> None:
     """Kontrollsyklus: les sensorer → hent vær → evaluer → handle → logg."""
     try:
-        # Les sensorer — felles tidsstempel for alle sensorer i syklusen
-        cycle_ts = datetime.now(timezone.utc)
+        # Les sensorer for evaluering (logging gjøres av _sensor_poll)
         readings = await _read_all_sensors(sensors)
-        for name, sensor in sensors.items():
-            value = await sensor.read()
-            if value is not None:
-                store.log_sensor(name, value, timestamp=cycle_ts)
 
         # Hent værdata
         forecast = await met_client.fetch_forecast(lat, lon)
@@ -182,14 +201,27 @@ async def main() -> None:
 
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
+        _sensor_poll,
+        "interval",
+        minutes=1,
+        args=[store, sensors],
+    )
+    scheduler.add_job(
         _control_loop,
         "interval",
         minutes=10,
         args=[met_client, store, controller, sensors, cfg.location.lat, cfg.location.lon],
     )
+    scheduler.add_job(
+        _run_compaction,
+        "interval",
+        hours=1,
+        args=[store],
+    )
     scheduler.start()
 
-    # Kjør kontrollsyklus umiddelbart ved oppstart
+    # Kjør sensorpolling og kontrollsyklus umiddelbart ved oppstart
+    await _sensor_poll(store, sensors)
     await _control_loop(
         met_client, store, controller, sensors, cfg.location.lat, cfg.location.lon
     )
