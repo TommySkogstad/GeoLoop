@@ -5,10 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoLoop Dashboard</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3/dist/chartjs-plugin-annotation.min.js"></script>
 </head>
 <body>
     <header>
-        <h1>GeoLoop</h1>
+        <h1><a href="/" class="header-link">GeoLoop</a></h1>
+        <nav class="nav-links">
+            <a href="/" class="active">Dashboard</a>
+            <a href="/info">System</a>
+        </nav>
         <span id="last-update" class="meta">Laster...</span>
     </header>
 
@@ -54,6 +61,22 @@
             <h2>Sensorer</h2>
             <div class="grid sensor-grid" id="sensor-grid">
                 <p class="meta">Laster sensordata...</p>
+            </div>
+        </section>
+
+        <!-- Sensorhistorikk -->
+        <section class="card">
+            <div class="card-header-row">
+                <h2>Sensorhistorikk</h2>
+                <div class="period-btns" id="period-btns">
+                    <button class="period-btn" data-hours="1">1t</button>
+                    <button class="period-btn" data-hours="6">6t</button>
+                    <button class="period-btn active" data-hours="24">24t</button>
+                    <button class="period-btn" data-hours="168">7d</button>
+                </div>
+            </div>
+            <div class="history-chart-wrap">
+                <canvas id="history-chart"></canvas>
             </div>
         </section>
 

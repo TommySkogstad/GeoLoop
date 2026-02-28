@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -115,6 +115,47 @@ class Store:
         rows = self._conn.execute(
             "SELECT * FROM system_events ORDER BY id DESC LIMIT ?",
             (limit,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_sensor_history(self, hours: int = 24) -> list[dict]:
+        """Hent sensordata pivotert per tidsstempel for de siste N timer."""
+        since = (
+            datetime.now(timezone.utc)
+            - timedelta(hours=hours)
+        ).isoformat()
+        rows = self._conn.execute(
+            """
+            SELECT timestamp,
+                   MAX(CASE WHEN sensor_id = 'loop_inlet'  THEN value END) AS loop_inlet,
+                   MAX(CASE WHEN sensor_id = 'loop_outlet' THEN value END) AS loop_outlet,
+                   MAX(CASE WHEN sensor_id = 'hp_inlet'    THEN value END) AS hp_inlet,
+                   MAX(CASE WHEN sensor_id = 'hp_outlet'   THEN value END) AS hp_outlet,
+                   MAX(CASE WHEN sensor_id = 'tank'        THEN value END) AS tank
+            FROM sensor_log
+            WHERE timestamp >= ?
+            GROUP BY timestamp
+            ORDER BY timestamp ASC
+            """,
+            (since,),
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_heating_periods(self, hours: int = 24) -> list[dict]:
+        """Hent VP av/på-hendelser for de siste N timer."""
+        since = (
+            datetime.now(timezone.utc)
+            - timedelta(hours=hours)
+        ).isoformat()
+        rows = self._conn.execute(
+            """
+            SELECT timestamp, event_type
+            FROM system_events
+            WHERE event_type IN ('heating_on', 'heating_off', 'manual_on', 'manual_off')
+              AND timestamp >= ?
+            ORDER BY timestamp ASC
+            """,
+            (since,),
         ).fetchall()
         return [dict(row) for row in rows]
 

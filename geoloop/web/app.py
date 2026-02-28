@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 if TYPE_CHECKING:
+    from geoloop.config import AppConfig
     from geoloop.controller.base import HeatingController
     from geoloop.db.store import Store
     from geoloop.sensors.base import TemperatureSensor
@@ -27,6 +28,7 @@ _lat: float = 0.0
 _lon: float = 0.0
 _sensors: dict[str, TemperatureSensor] = {}
 _controller: HeatingController | None = None
+_config: AppConfig | None = None
 
 
 def configure(
@@ -36,21 +38,79 @@ def configure(
     lon: float,
     sensors: dict[str, TemperatureSensor] | None = None,
     controller: HeatingController | None = None,
+    config: AppConfig | None = None,
 ) -> None:
     """Sett opp delte avhengigheter for ruter."""
-    global _met_client, _store, _lat, _lon, _sensors, _controller
+    global _met_client, _store, _lat, _lon, _sensors, _controller, _config
     _met_client = met_client
     _store = store
     _lat = lat
     _lon = lon
     _sensors = sensors or {}
     _controller = controller
+    _config = config
 
 
 @app.get("/")
 async def index() -> FileResponse:
     """Server dashboard."""
     return FileResponse(_STATIC_DIR / "index.html")
+
+
+@app.get("/info")
+async def info_page() -> FileResponse:
+    """Server informasjonsside."""
+    return FileResponse(_STATIC_DIR / "info.html")
+
+
+@app.get("/api/system")
+async def system_info() -> dict:
+    """Systeminformasjon og konfigurasjon."""
+    info: dict = {
+        "version": "0.1.0",
+        "location": {"lat": _lat, "lon": _lon},
+    }
+
+    if _config:
+        info["weather"] = {
+            "poll_interval_minutes": _config.weather.poll_interval_minutes,
+        }
+        info["web"] = {
+            "host": _config.web.host,
+            "port": _config.web.port,
+        }
+        if _config.ground_loop:
+            gl = _config.ground_loop
+            inner_d = gl.pipe_outer_mm - 2 * gl.pipe_wall_mm
+            volume = (3.14159 * (inner_d / 2000) ** 2) * gl.total_length_m * 1000
+            info["ground_loop"] = {
+                "loops": gl.loops,
+                "total_length_m": gl.total_length_m,
+                "pipe_outer_mm": gl.pipe_outer_mm,
+                "pipe_wall_mm": gl.pipe_wall_mm,
+                "volume_liters": round(volume),
+            }
+        if _config.tank:
+            info["tank"] = {"volume_liters": _config.tank.volume_liters}
+        if _config.relays:
+            info["relays"] = {
+                name: {"gpio_pin": r.gpio_pin, "active_high": r.active_high}
+                for name, r in _config.relays.items()
+            }
+        if _config.sensors:
+            info["sensors"] = {
+                name: {"id": s.id} for name, s in _config.sensors.items()
+            }
+
+    # Database stats
+    if _store:
+        info["database"] = {
+            "sensor_readings": len(_store.get_sensor_log(limit=999999)),
+            "weather_readings": len(_store.get_weather_log(limit=999999)),
+            "events": len(_store.get_events(limit=999999)),
+        }
+
+    return info
 
 
 @app.get("/api/status")
@@ -146,6 +206,23 @@ async def heating_off() -> dict:
         _store.log_event("manual_off", "Manuell overstyring: varme AV")
     logger.info("Manuell overstyring: varme AV")
     return {"heating": {"on": False}}
+
+
+@app.get("/api/history")
+async def history(hours: int = 24) -> dict:
+    """Sensorhistorikk og VP-perioder for tidsserie-graf."""
+    if not _store:
+        return {"error": "Database ikke konfigurert"}
+
+    heating_on = False
+    if _controller:
+        heating_on = await _controller.is_on()
+
+    return {
+        "sensors": _store.get_sensor_history(hours=hours),
+        "heating_periods": _store.get_heating_periods(hours=hours),
+        "heating_on": heating_on,
+    }
 
 
 @app.get("/api/log")

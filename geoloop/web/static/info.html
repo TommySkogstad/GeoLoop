@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoLoop — Systeminformasjon</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header>
+        <h1><a href="/" class="header-link">GeoLoop</a></h1>
+        <nav class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/info" class="active">System</a>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Oversikt -->
+        <section class="card">
+            <h2>System</h2>
+            <div class="info-grid" id="system-overview">
+                <p class="meta">Laster...</p>
+            </div>
+        </section>
+
+        <!-- Bakkesl&oslash;yfe -->
+        <section class="card">
+            <h2>Bakkesløyfe</h2>
+            <div class="info-grid" id="ground-loop-info">
+                <p class="meta">Laster...</p>
+            </div>
+            <div class="loop-diagram" id="loop-diagram"></div>
+        </section>
+
+        <!-- Sensorer -->
+        <section class="card">
+            <h2>Temperatursensorer</h2>
+            <div class="info-table-wrap">
+                <table class="info-table" id="sensor-table">
+                    <thead>
+                        <tr>
+                            <th>Navn</th>
+                            <th>Plassering</th>
+                            <th>1-Wire ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sensor-tbody">
+                        <tr><td colspan="3" class="meta">Laster...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Releeer -->
+        <section class="card">
+            <h2>Relestyring</h2>
+            <div class="info-table-wrap">
+                <table class="info-table" id="relay-table">
+                    <thead>
+                        <tr>
+                            <th>Kanal</th>
+                            <th>GPIO</th>
+                            <th>Aktiv</th>
+                        </tr>
+                    </thead>
+                    <tbody id="relay-tbody">
+                        <tr><td colspan="3" class="meta">Laster...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Styringslogikk -->
+        <section class="card">
+            <h2>Styringslogikk</h2>
+            <p class="info-description">
+                GeoLoop bruker prediktiv styring basert på 24-timers værprognose fra
+                <strong>api.met.no</strong>. Systemet evaluerer isrisiko og tar beslutninger
+                om oppvarming automatisk.
+            </p>
+            <div class="risk-table-wrap">
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>Risikonivå</th>
+                            <th>Kriterier</th>
+                            <th>Handling</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="risk-badge risk-high">HØY</span></td>
+                            <td>Nedbør nær 0°C, eller ≥4t i -1 til +2°C</td>
+                            <td>Slå PÅ</td>
+                        </tr>
+                        <tr>
+                            <td><span class="risk-badge risk-moderate">MODERAT</span></td>
+                            <td>≥6 timer i issonen (-5 til +5°C)</td>
+                            <td>Slå PÅ</td>
+                        </tr>
+                        <tr>
+                            <td><span class="risk-badge risk-low">LAV</span></td>
+                            <td>≥2 timer i issonen</td>
+                            <td>Behold tilstand</td>
+                        </tr>
+                        <tr>
+                            <td><span class="risk-badge risk-none">INGEN</span></td>
+                            <td>Ingen timer i issonen</td>
+                            <td>Slå AV</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Database -->
+        <section class="card">
+            <h2>Database</h2>
+            <div class="info-grid" id="db-info">
+                <p class="meta">Laster...</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+    (function () {
+        "use strict";
+
+        var SENSOR_NAMES = {
+            loop_inlet:  "Sløyfe inn (T1)",
+            loop_outlet: "Sløyfe ut (T2)",
+            hp_inlet:    "VP inn (T3)",
+            hp_outlet:   "VP ut (T4)",
+            tank:        "Tank (T5)"
+        };
+
+        var SENSOR_LOCATIONS = {
+            loop_inlet:  "Inn til bakkesløyfe",
+            loop_outlet: "Ut av bakkesløyfe",
+            hp_inlet:    "Returvann til varmepumpe",
+            hp_outlet:   "Turvann fra varmepumpe",
+            tank:        "200L buffertank"
+        };
+
+        var RELAY_NAMES = {
+            heat_pump:        "Varmepumpe (K1)",
+            circulation_pump: "Sirkulasjonspumpe (K2)",
+            spare:            "Ledig (K3)"
+        };
+
+        function fetchJSON(url) {
+            return fetch(url).then(function (r) { return r.json(); });
+        }
+
+        function infoItem(label, value) {
+            return '<div class="info-item">' +
+                '<span class="info-label">' + label + '</span>' +
+                '<span class="info-value">' + value + '</span></div>';
+        }
+
+        fetchJSON("/api/system").then(function (data) {
+            // System overview
+            var overview = document.getElementById("system-overview");
+            var html = "";
+            html += infoItem("Versjon", "GeoLoop v" + data.version);
+            html += infoItem("Posisjon", data.location.lat.toFixed(4) + "°N, " + data.location.lon.toFixed(4) + "°E");
+            if (data.web) {
+                html += infoItem("Webserver", data.web.host + ":" + data.web.port);
+            }
+            if (data.weather) {
+                html += infoItem("Kontrollintervall", "10 min");
+                html += infoItem("Værdata-intervall", data.weather.poll_interval_minutes + " min");
+            }
+            overview.innerHTML = html;
+
+            // Ground loop
+            var glEl = document.getElementById("ground-loop-info");
+            if (data.ground_loop) {
+                var gl = data.ground_loop;
+                var glHtml = "";
+                glHtml += infoItem("Antall sløyfer", gl.loops);
+                glHtml += infoItem("Total rørlengde", gl.total_length_m + " m");
+                glHtml += infoItem("Rørdiameter", gl.pipe_outer_mm + " mm (ytre)");
+                glHtml += infoItem("Veggtykkelse", gl.pipe_wall_mm + " mm");
+                glHtml += infoItem("Vannvolum sløyfe", "~" + gl.volume_liters + " liter");
+                if (data.tank) {
+                    glHtml += infoItem("Buffertank", data.tank.volume_liters + " liter");
+                    glHtml += infoItem("Totalt vannvolum", "~" + (gl.volume_liters + data.tank.volume_liters) + " liter");
+                }
+                glEl.innerHTML = glHtml;
+            } else {
+                glEl.innerHTML = '<p class="meta">Ikke konfigurert</p>';
+            }
+
+            // Sensors
+            var sensorTbody = document.getElementById("sensor-tbody");
+            if (data.sensors) {
+                var sHtml = "";
+                for (var key in data.sensors) {
+                    var name = SENSOR_NAMES[key] || key;
+                    var loc = SENSOR_LOCATIONS[key] || "";
+                    var sid = data.sensors[key].id || "—";
+                    sHtml += "<tr><td>" + name + "</td><td>" + loc + "</td><td><code>" + sid + "</code></td></tr>";
+                }
+                sensorTbody.innerHTML = sHtml;
+            } else {
+                sensorTbody.innerHTML = '<tr><td colspan="3" class="meta">Ingen sensorer konfigurert</td></tr>';
+            }
+
+            // Relays
+            var relayTbody = document.getElementById("relay-tbody");
+            if (data.relays) {
+                var rHtml = "";
+                for (var key in data.relays) {
+                    var name = RELAY_NAMES[key] || key;
+                    var r = data.relays[key];
+                    rHtml += "<tr><td>" + name + "</td><td>GPIO " + r.gpio_pin + "</td><td>" + (r.active_high ? "HIGH" : "LOW") + "</td></tr>";
+                }
+                relayTbody.innerHTML = rHtml;
+            } else {
+                relayTbody.innerHTML = '<tr><td colspan="3" class="meta">Ingen reléer konfigurert</td></tr>';
+            }
+
+            // Database
+            var dbEl = document.getElementById("db-info");
+            if (data.database) {
+                var db = data.database;
+                var dbHtml = "";
+                dbHtml += infoItem("Sensoravlesninger", db.sensor_readings.toLocaleString("nb-NO"));
+                dbHtml += infoItem("Væravlesninger", db.weather_readings.toLocaleString("nb-NO"));
+                dbHtml += infoItem("Hendelser", db.events.toLocaleString("nb-NO"));
+                dbEl.innerHTML = dbHtml;
+            } else {
+                dbEl.innerHTML = '<p class="meta">Ikke tilgjengelig</p>';
+            }
+        }).catch(function () {
+            document.getElementById("system-overview").innerHTML =
+                '<p class="meta">Kunne ikke hente systeminformasjon</p>';
+        });
+    })();
+    </script>
+</body>
+</html>

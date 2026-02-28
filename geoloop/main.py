@@ -161,6 +161,7 @@ async def main() -> None:
         lon=cfg.location.lon,
         sensors=sensors,
         controller=controller,
+        config=cfg,
     )
 
     store.log_event("startup", "GeoLoop startet")

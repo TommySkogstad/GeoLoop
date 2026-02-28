@@ -204,6 +204,204 @@
         }
     }
 
+    // -- History chart (Chart.js) --
+
+    var historyChart = null;
+    var historyHours = 24;
+
+    var SENSOR_COLORS = {
+        loop_inlet:  "#42a5f5",
+        loop_outlet: "#66bb6a",
+        hp_inlet:    "#ef5350",
+        hp_outlet:   "#ff9800",
+        tank:        "#ab47bc"
+    };
+
+    function buildHeatingBands(periods, heatingOn, timeMin, timeMax) {
+        var bands = [];
+        if (!periods.length && !heatingOn) return bands;
+
+        // Reconstruct on/off periods as annotation boxes
+        var on = false;
+        var start = null;
+
+        for (var i = 0; i < periods.length; i++) {
+            var p = periods[i];
+            var isOn = p.event_type === "heating_on" || p.event_type === "manual_on";
+            if (isOn && !on) {
+                start = new Date(p.timestamp).getTime();
+                on = true;
+            } else if (!isOn && on) {
+                bands.push({
+                    type: "box",
+                    xMin: start,
+                    xMax: new Date(p.timestamp).getTime(),
+                    backgroundColor: "rgba(0, 200, 83, 0.10)",
+                    borderWidth: 0
+                });
+                on = false;
+                start = null;
+            }
+        }
+        // If still on at the end, extend to now
+        if (on && start) {
+            bands.push({
+                type: "box",
+                xMin: start,
+                xMax: timeMax,
+                backgroundColor: "rgba(0, 200, 83, 0.10)",
+                borderWidth: 0
+            });
+        }
+        return bands;
+    }
+
+    function updateHistory() {
+        fetchJSON("/api/history?hours=" + historyHours).then(function (data) {
+            var sensorData = data.sensors || [];
+            var periods = data.heating_periods || [];
+            var heatingOn = data.heating_on || false;
+
+            if (!sensorData.length) return;
+
+            var timestamps = sensorData.map(function (s) {
+                return new Date(s.timestamp).getTime();
+            });
+            var timeMin = timestamps[0];
+            var timeMax = timestamps[timestamps.length - 1];
+
+            var datasets = [];
+            var keys = ["loop_inlet", "loop_outlet", "hp_inlet", "hp_outlet", "tank"];
+            for (var k = 0; k < keys.length; k++) {
+                var key = keys[k];
+                var points = [];
+                for (var i = 0; i < sensorData.length; i++) {
+                    if (sensorData[i][key] !== null && sensorData[i][key] !== undefined) {
+                        points.push({
+                            x: new Date(sensorData[i].timestamp).getTime(),
+                            y: sensorData[i][key]
+                        });
+                    }
+                }
+                datasets.push({
+                    label: SENSOR_LABELS[key] || key,
+                    data: points,
+                    borderColor: SENSOR_COLORS[key],
+                    backgroundColor: SENSOR_COLORS[key],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    pointHitRadius: 6,
+                    tension: 0.3
+                });
+            }
+
+            // VP status as a separate "dataset" shown in legend
+            datasets.push({
+                label: "VP på",
+                data: [],
+                borderColor: "rgba(0, 200, 83, 0.5)",
+                backgroundColor: "rgba(0, 200, 83, 0.10)",
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: true
+            });
+
+            var bands = buildHeatingBands(periods, heatingOn, timeMin, timeMax);
+
+            var canvas = document.getElementById("history-chart");
+            var ctx = canvas.getContext("2d");
+
+            if (historyChart) {
+                historyChart.data.datasets = datasets;
+                historyChart.options.plugins.annotation.annotations = bands;
+                historyChart.update("none");
+                return;
+            }
+
+            historyChart = new Chart(ctx, {
+                type: "line",
+                data: { datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+                    scales: {
+                        x: {
+                            type: "time",
+                            time: {
+                                tooltipFormat: "HH:mm",
+                                displayFormats: {
+                                    minute: "HH:mm",
+                                    hour: "HH:mm",
+                                    day: "dd.MM"
+                                }
+                            },
+                            ticks: { color: "#8a8a9a", maxTicksLimit: 10 },
+                            grid: { color: "rgba(255,255,255,0.05)" }
+                        },
+                        y: {
+                            ticks: {
+                                color: "#8a8a9a",
+                                callback: function (v) { return v + "\u00b0C"; }
+                            },
+                            grid: { color: "rgba(255,255,255,0.05)" }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: "#e0e0e0",
+                                usePointStyle: true,
+                                pointStyle: "line",
+                                boxWidth: 20,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (ctx) {
+                                    if (ctx.dataset.label === "VP p\u00e5") return null;
+                                    return ctx.dataset.label + ": " + ctx.parsed.y.toFixed(1) + "\u00b0C";
+                                }
+                            }
+                        },
+                        annotation: {
+                            annotations: bands
+                        }
+                    }
+                },
+                plugins: [{
+                    id: "vpLegendOverride",
+                    beforeDraw: function () {}
+                }]
+            });
+        }).catch(function (err) {
+            console.error("History fetch error:", err);
+        });
+    }
+
+    // Period button handlers
+    (function () {
+        var btns = document.querySelectorAll(".period-btn");
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].addEventListener("click", function () {
+                for (var j = 0; j < btns.length; j++) {
+                    btns[j].classList.remove("active");
+                }
+                this.classList.add("active");
+                historyHours = parseInt(this.getAttribute("data-hours"), 10);
+                if (historyChart) {
+                    historyChart.destroy();
+                    historyChart = null;
+                }
+                updateHistory();
+            });
+        }
+    })();
+
     // -- Manual controls --
 
     window.heatingOn = function () {
@@ -225,6 +423,7 @@
     function poll() {
         updateStatus();
         updateForecast();
+        updateHistory();
         updateLog();
     }
 
