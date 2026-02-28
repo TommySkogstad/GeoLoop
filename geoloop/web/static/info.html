@@ -56,7 +56,7 @@
                         <tr>
                             <th>Kanal</th>
                             <th>GPIO-pinne</th>
-                            <th>Aktiv tilstand</th>
+                            <th>Tilkobling</th>
                         </tr>
                     </thead>
                     <tbody id="relay-tbody">
@@ -99,7 +99,7 @@
                         </tr>
                         <tr>
                             <td><span class="risk-badge risk-none">INGEN</span></td>
-                            <td>Ingen timer i issonen</td>
+                            <td>&lt; 2 timer i issonen</td>
                             <td>Slå AV</td>
                         </tr>
                     </tbody>
@@ -127,16 +127,21 @@
             tank:        "Tank (T5)"
         };
         var SENSOR_LOCATIONS = {
-            loop_inlet:  "Inn til bakkesløyfe",
-            loop_outlet: "Ut av bakkesløyfe",
-            hp_inlet:    "Retur til varmepumpe",
-            hp_outlet:   "Tur fra varmepumpe",
-            tank:        "Buffertank"
+            loop_inlet:  "Tank \u2192 bakkesl\u00f8yfe \u2014 turtemperatur til bakken",
+            loop_outlet: "Bakkesl\u00f8yfe \u2192 tank \u2014 returtemperatur (delta-T)",
+            hp_inlet:    "Tank \u2192 VP (via kolbetank) \u2014 returvann til VP",
+            hp_outlet:   "VP \u2192 tank \u2014 turvann fra VP",
+            tank:        "Buffertank 200 L (VP klemme 15/16)"
         };
         var RELAY_NAMES = {
             heat_pump:        "Varmepumpe (K1)",
             circulation_pump: "Sirkulasjonspumpe (K2)",
             spare:            "Ledig (K3)"
+        };
+        var RELAY_CONNECTIONS = {
+            heat_pump:        "VP klemme 17/18 (potensialfri, erstatter fabrikkjumper)",
+            circulation_pump: "Uavhengig styring",
+            spare:            "Reservert (kolber i fremtiden)"
         };
 
         function fetchJSON(url) {
@@ -167,8 +172,11 @@
                 ["Versjon", "GeoLoop v" + d.version],
                 ["Posisjon", d.location.lat.toFixed(4) + "°N, " + d.location.lon.toFixed(4) + "°E"]
             ];
-            if (d.weather) sysRows.push(["Værdata-intervall", d.weather.poll_interval_minutes + " min"]);
-            sysRows.push(["Kontrollintervall", "10 min"]);
+            sysRows.push(["Varmepumpe", "Panasonic WH-MXC12G6E5 (Aquarea G-gen, luft-vann)"]);
+            sysRows.push(["Styringsenhet", "Raspberry Pi 3B+ + RPi Relay Board (3 kanaler)"]);
+            if (d.weather) sysRows.push(["V\u00e6rdata-intervall", d.weather.poll_interval_minutes + " min"]);
+            sysRows.push(["Sensorpolling", "1 min"]);
+            sysRows.push(["Kontrollsyklus", "10 min"]);
             if (d.web) sysRows.push(["Webserver", d.web.host + ":" + d.web.port]);
             document.getElementById("system-tbl").innerHTML = kv(sysRows);
 
@@ -180,11 +188,18 @@
                 loopRows.push(["Total rørlengde", gl.total_length_m + " m"]);
                 loopRows.push(["Rørdiameter (ytre/indre)", gl.pipe_outer_mm + " / " + (gl.pipe_outer_mm - 2 * gl.pipe_wall_mm) + " mm"]);
                 loopRows.push(["Vannvolum, bakkesløyfe", "~" + gl.volume_liters + " liter"]);
+                loopRows.push(["Legging", "I sand, 5 cm under overflaten, asfalt over"]);
+                loopRows.push(["Dekket areal", "~90 m\u00b2"]);
+                loopRows.push(["R\u00f8rtetthet", "~10 m/m\u00b2"]);
             }
             if (d.tank) {
                 loopRows.push(["Buffertank", d.tank.volume_liters + " liter"]);
-                if (d.ground_loop) loopRows.push(["Totalt vannvolum", "~" + (d.ground_loop.volume_liters + d.tank.volume_liters) + " liter"]);
             }
+            loopRows.push(["Kolbetank", "10 L (10 kW kolber p\u00e5 VP inngang)"]);
+            loopRows.push(["Internr\u00f8r", "~30 liter"]);
+            var totalVol = (d.ground_loop ? d.ground_loop.volume_liters : 0)
+                         + (d.tank ? d.tank.volume_liters : 0) + 10 + 30;
+            loopRows.push(["Totalt vannvolum", "~" + totalVol + " liter"]);
             document.getElementById("loop-tbl").innerHTML = loopRows.length
                 ? kv(loopRows)
                 : '<tr><td colspan="2" class="meta">Ikke konfigurert</td></tr>';
@@ -209,10 +224,10 @@
                     var r = d.relays[key];
                     rHtml += "<tr><td>" + (RELAY_NAMES[key] || key) + "</td>" +
                              "<td>GPIO " + r.gpio_pin + "</td>" +
-                             "<td>" + (r.active_high ? "HIGH" : "LOW") + "</td></tr>";
+                             "<td>" + (RELAY_CONNECTIONS[key] || (r.active_high ? "HIGH" : "LOW")) + "</td></tr>";
                 }
             } else {
-                rHtml = '<tr><td colspan="3" class="meta">Ingen reléer konfigurert</td></tr>';
+                rHtml = '<tr><td colspan="3" class="meta">Ingen rel\u00e9er konfigurert</td></tr>';
             }
             document.getElementById("relay-tbody").innerHTML = rHtml;
 
