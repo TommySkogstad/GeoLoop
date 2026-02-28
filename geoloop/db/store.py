@@ -126,7 +126,7 @@ class Store:
         ).isoformat()
         rows = self._conn.execute(
             """
-            SELECT timestamp,
+            SELECT strftime('%Y-%m-%dT%H:%M:%SZ', MIN(timestamp)) AS timestamp,
                    MAX(CASE WHEN sensor_id = 'loop_inlet'  THEN value END) AS loop_inlet,
                    MAX(CASE WHEN sensor_id = 'loop_outlet' THEN value END) AS loop_outlet,
                    MAX(CASE WHEN sensor_id = 'hp_inlet'    THEN value END) AS hp_inlet,
@@ -134,7 +134,7 @@ class Store:
                    MAX(CASE WHEN sensor_id = 'tank'        THEN value END) AS tank
             FROM sensor_log
             WHERE timestamp >= ?
-            GROUP BY timestamp
+            GROUP BY strftime('%Y-%m-%dT%H:%M:%S', timestamp)
             ORDER BY timestamp ASC
             """,
             (since,),

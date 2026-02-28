@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 import uvicorn
@@ -34,16 +35,28 @@ def _create_sensors(cfg: AppConfig) -> dict[str, TemperatureSensor]:
             sensors[name] = StubSensor(name)
         return sensors
 
+    _stub_values: dict[str, float] = {
+        "loop_inlet": 0.5,
+        "loop_outlet": 4.2,
+        "hp_inlet": 35.0,
+        "hp_outlet": 45.8,
+        "tank": 44.1,
+    }
+
     try:
         from geoloop.sensors.ds18b20 import DS18B20Sensor
 
         for name, sensor_cfg in cfg.sensors.items():
-            sensors[name] = DS18B20Sensor(sensor_cfg.id)
+            if "xxx" in sensor_cfg.id:
+                sensors[name] = StubSensor(name, _stub_values.get(name, 20.0))
+                logger.info("Sensor %s: plassholder-ID — bruker stub (%.1f°C)", name, _stub_values.get(name, 20.0))
+            else:
+                sensors[name] = DS18B20Sensor(sensor_cfg.id)
         logger.info("DS18B20-sensorer opprettet: %s", list(sensors.keys()))
     except Exception:
         logger.warning("Kan ikke opprette DS18B20-sensorer — bruker stubs")
         for name in cfg.sensors:
-            sensors[name] = StubSensor(name)
+            sensors[name] = StubSensor(name, _stub_values.get(name, 20.0))
 
     return sensors
 
@@ -101,12 +114,13 @@ async def _control_loop(
 ) -> None:
     """Kontrollsyklus: les sensorer → hent vær → evaluer → handle → logg."""
     try:
-        # Les sensorer
+        # Les sensorer — felles tidsstempel for alle sensorer i syklusen
+        cycle_ts = datetime.now(timezone.utc)
         readings = await _read_all_sensors(sensors)
         for name, sensor in sensors.items():
             value = await sensor.read()
             if value is not None:
-                store.log_sensor(name, value)
+                store.log_sensor(name, value, timestamp=cycle_ts)
 
         # Hent værdata
         forecast = await met_client.fetch_forecast(lat, lon)

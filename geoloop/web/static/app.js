@@ -114,12 +114,12 @@
         var ctx = canvas.getContext("2d");
         var dpr = window.devicePixelRatio || 1;
 
-        canvas.width = canvas.clientWidth * dpr;
-        canvas.height = canvas.clientHeight * dpr;
-        ctx.scale(dpr, dpr);
+        var w = canvas.offsetWidth  || 600;
+        var h = canvas.offsetHeight || 200;
 
-        var w = canvas.clientWidth;
-        var h = canvas.clientHeight;
+        canvas.width  = w * dpr;
+        canvas.height = h * dpr;
+        ctx.scale(dpr, dpr);
         var pad = { top: 20, right: 10, bottom: 30, left: 40 };
         var cw = w - pad.left - pad.right;
         var ch = h - pad.top - pad.bottom;
@@ -204,183 +204,119 @@
         }
     }
 
-    // -- History chart (Chart.js) --
+    // -- History chart (canvas, ingen CDN-avhengighet) --
 
-    var historyChart = null;
     var historyHours = 24;
 
-    var SENSOR_COLORS = {
-        loop_inlet:  "#42a5f5",
-        loop_outlet: "#66bb6a",
-        hp_inlet:    "#ef5350",
-        hp_outlet:   "#ff9800",
-        tank:        "#ab47bc"
-    };
-
-    function buildHeatingBands(periods, heatingOn, timeMin, timeMax) {
-        var bands = [];
-        if (!periods.length && !heatingOn) return bands;
-
-        // Reconstruct on/off periods as annotation boxes
-        var on = false;
-        var start = null;
-
-        for (var i = 0; i < periods.length; i++) {
-            var p = periods[i];
-            var isOn = p.event_type === "heating_on" || p.event_type === "manual_on";
-            if (isOn && !on) {
-                start = new Date(p.timestamp).getTime();
-                on = true;
-            } else if (!isOn && on) {
-                bands.push({
-                    type: "box",
-                    xMin: start,
-                    xMax: new Date(p.timestamp).getTime(),
-                    backgroundColor: "rgba(0, 200, 83, 0.10)",
-                    borderWidth: 0
-                });
-                on = false;
-                start = null;
-            }
-        }
-        // If still on at the end, extend to now
-        if (on && start) {
-            bands.push({
-                type: "box",
-                xMin: start,
-                xMax: timeMax,
-                backgroundColor: "rgba(0, 200, 83, 0.10)",
-                borderWidth: 0
-            });
-        }
-        return bands;
-    }
+    var H_KEYS   = ["loop_inlet", "loop_outlet", "hp_inlet", "hp_outlet", "tank"];
+    var H_COLORS = ["#42a5f5",    "#66bb6a",     "#ef5350",  "#ff9800",   "#ab47bc"];
+    var H_LABELS = ["Sløyfe inn", "Sløyfe ut",   "VP inn",   "VP ut",     "Tank"];
 
     function updateHistory() {
         fetchJSON("/api/history?hours=" + historyHours).then(function (data) {
-            var sensorData = data.sensors || [];
-            var periods = data.heating_periods || [];
-            var heatingOn = data.heating_on || false;
+            drawHistoryChart(data.sensors || []);
+        }).catch(function () { /* ignore */ });
+    }
 
-            if (!sensorData.length) return;
+    function drawHistoryChart(rows) {
+        var canvas = document.getElementById("history-chart");
+        if (!canvas) return;
+        var ctx = canvas.getContext("2d");
+        var dpr = window.devicePixelRatio || 1;
 
-            var timestamps = sensorData.map(function (s) {
-                return new Date(s.timestamp).getTime();
-            });
-            var timeMin = timestamps[0];
-            var timeMax = timestamps[timestamps.length - 1];
+        var W = canvas.offsetWidth  || 600;
+        var H = canvas.offsetHeight || 260;
 
-            var datasets = [];
-            var keys = ["loop_inlet", "loop_outlet", "hp_inlet", "hp_outlet", "tank"];
-            for (var k = 0; k < keys.length; k++) {
-                var key = keys[k];
-                var points = [];
-                for (var i = 0; i < sensorData.length; i++) {
-                    if (sensorData[i][key] !== null && sensorData[i][key] !== undefined) {
-                        points.push({
-                            x: new Date(sensorData[i].timestamp).getTime(),
-                            y: sensorData[i][key]
-                        });
-                    }
-                }
-                datasets.push({
-                    label: SENSOR_LABELS[key] || key,
-                    data: points,
-                    borderColor: SENSOR_COLORS[key],
-                    backgroundColor: SENSOR_COLORS[key],
-                    borderWidth: 1.5,
-                    pointRadius: 0,
-                    pointHitRadius: 6,
-                    tension: 0.3
-                });
+        canvas.width  = W * dpr;
+        canvas.height = H * dpr;
+        ctx.scale(dpr, dpr);
+
+        if (W <= 0 || H <= 0) return;
+
+        ctx.clearRect(0, 0, W, H);
+
+        if (!rows.length) {
+            ctx.fillStyle = "#8a8a9a";
+            ctx.font = "13px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("Ingen historikk ennå — venter på første syklus", W / 2, H / 2);
+            return;
+        }
+
+        var pad = { top: 16, right: 96, bottom: 28, left: 42 };
+        var cw = W - pad.left - pad.right;
+        var ch = H - pad.top  - pad.bottom;
+
+        // Samle alle verdier for skalering
+        var allVals = [];
+        for (var k = 0; k < H_KEYS.length; k++) {
+            for (var i = 0; i < rows.length; i++) {
+                var v = rows[i][H_KEYS[k]];
+                if (v != null) allVals.push(v);
             }
+        }
+        if (!allVals.length) return;
 
-            // VP status as a separate "dataset" shown in legend
-            datasets.push({
-                label: "VP på",
-                data: [],
-                borderColor: "rgba(0, 200, 83, 0.5)",
-                backgroundColor: "rgba(0, 200, 83, 0.10)",
-                borderWidth: 2,
-                pointRadius: 0,
-                fill: true
-            });
+        var vMin = Math.floor(Math.min.apply(null, allVals) - 2);
+        var vMax = Math.ceil(Math.max.apply(null, allVals)  + 2);
 
-            var bands = buildHeatingBands(periods, heatingOn, timeMin, timeMax);
+        var times = rows.map(function (r) { return new Date(r.timestamp).getTime(); });
+        var tMin  = times[0];
+        var tMax  = times[times.length - 1];
+        if (tMin >= tMax) tMax = tMin + 600000;
 
-            var canvas = document.getElementById("history-chart");
-            var ctx = canvas.getContext("2d");
+        function xP(t) { return pad.left + (t - tMin) / (tMax - tMin) * cw; }
+        function yP(v) { return pad.top  + (1 - (v - vMin) / (vMax - vMin)) * ch; }
 
-            if (historyChart) {
-                historyChart.data.datasets = datasets;
-                historyChart.options.plugins.annotation.annotations = bands;
-                historyChart.update("none");
-                return;
+        // Rutenett og y-akse
+        ctx.strokeStyle = "rgba(255,255,255,0.06)";
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "#8a8a9a";
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "right";
+        for (var i = 0; i <= 4; i++) {
+            var gy = pad.top + ch * i / 4;
+            var gv = vMax - (vMax - vMin) * i / 4;
+            ctx.beginPath(); ctx.moveTo(pad.left, gy); ctx.lineTo(pad.left + cw, gy); ctx.stroke();
+            ctx.fillText(gv.toFixed(0) + "\u00b0", pad.left - 4, gy + 4);
+        }
+
+        // x-akse tidsetiketter
+        ctx.textAlign = "center";
+        var xStep = Math.max(1, Math.floor(rows.length / 6));
+        for (var i = 0; i < rows.length; i += xStep) {
+            var d = new Date(times[i]);
+            var lbl = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+            ctx.fillText(lbl, xP(times[i]), H - 4);
+        }
+
+        // Linjer + etiketter på høyre kant
+        for (var k = 0; k < H_KEYS.length; k++) {
+            var key = H_KEYS[k];
+            ctx.beginPath();
+            ctx.strokeStyle = H_COLORS[k];
+            ctx.lineWidth = 2;
+            var started = false;
+            var lx, ly, lv;
+            for (var i = 0; i < rows.length; i++) {
+                var v = rows[i][key];
+                if (v == null) continue;
+                var x = xP(times[i]), y = yP(v);
+                if (!started) { ctx.moveTo(x, y); started = true; }
+                else           { ctx.lineTo(x, y); }
+                lx = x; ly = y; lv = v;
             }
-
-            historyChart = new Chart(ctx, {
-                type: "line",
-                data: { datasets: datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: "index",
-                        intersect: false
-                    },
-                    scales: {
-                        x: {
-                            type: "time",
-                            time: {
-                                tooltipFormat: "HH:mm",
-                                displayFormats: {
-                                    minute: "HH:mm",
-                                    hour: "HH:mm",
-                                    day: "dd.MM"
-                                }
-                            },
-                            ticks: { color: "#8a8a9a", maxTicksLimit: 10 },
-                            grid: { color: "rgba(255,255,255,0.05)" }
-                        },
-                        y: {
-                            ticks: {
-                                color: "#8a8a9a",
-                                callback: function (v) { return v + "\u00b0C"; }
-                            },
-                            grid: { color: "rgba(255,255,255,0.05)" }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: "#e0e0e0",
-                                usePointStyle: true,
-                                pointStyle: "line",
-                                boxWidth: 20,
-                                font: { size: 11 }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (ctx) {
-                                    if (ctx.dataset.label === "VP p\u00e5") return null;
-                                    return ctx.dataset.label + ": " + ctx.parsed.y.toFixed(1) + "\u00b0C";
-                                }
-                            }
-                        },
-                        annotation: {
-                            annotations: bands
-                        }
-                    }
-                },
-                plugins: [{
-                    id: "vpLegendOverride",
-                    beforeDraw: function () {}
-                }]
-            });
-        }).catch(function (err) {
-            console.error("History fetch error:", err);
-        });
+            ctx.stroke();
+            if (started) {
+                ctx.beginPath();
+                ctx.fillStyle = H_COLORS[k];
+                ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.textAlign = "left";
+                ctx.font = "10px sans-serif";
+                ctx.fillText(H_LABELS[k] + " " + lv.toFixed(1) + "\u00b0", lx + 7, ly + 4);
+            }
+        }
     }
 
     // Period button handlers
@@ -388,15 +324,9 @@
         var btns = document.querySelectorAll(".period-btn");
         for (var i = 0; i < btns.length; i++) {
             btns[i].addEventListener("click", function () {
-                for (var j = 0; j < btns.length; j++) {
-                    btns[j].classList.remove("active");
-                }
+                for (var j = 0; j < btns.length; j++) btns[j].classList.remove("active");
                 this.classList.add("active");
                 historyHours = parseInt(this.getAttribute("data-hours"), 10);
-                if (historyChart) {
-                    historyChart.destroy();
-                    historyChart = null;
-                }
                 updateHistory();
             });
         }
@@ -427,6 +357,13 @@
         updateLog();
     }
 
-    poll();
+    // History chart needs the canvas to be painted before offsetWidth is valid
+    updateStatus();
+    updateForecast();
+    updateLog();
+    setTimeout(updateHistory, 100);
     pollTimer = setInterval(poll, POLL_INTERVAL);
+
+    // Redraw history chart on resize
+    window.addEventListener("resize", updateHistory);
 })();

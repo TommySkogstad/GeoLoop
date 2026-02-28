@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoLoop — Systeminformasjon</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=5">
 </head>
 <body>
     <header>
@@ -16,33 +16,29 @@
     </header>
 
     <main>
-        <!-- Oversikt -->
         <section class="card">
             <h2>System</h2>
-            <div class="info-grid" id="system-overview">
-                <p class="meta">Laster...</p>
-            </div>
+            <table class="kv-table" id="system-tbl">
+                <tr><td colspan="2" class="meta">Laster...</td></tr>
+            </table>
         </section>
 
-        <!-- Bakkesl&oslash;yfe -->
         <section class="card">
-            <h2>Bakkesløyfe</h2>
-            <div class="info-grid" id="ground-loop-info">
-                <p class="meta">Laster...</p>
-            </div>
-            <div class="loop-diagram" id="loop-diagram"></div>
+            <h2>Anlegg</h2>
+            <table class="kv-table" id="loop-tbl">
+                <tr><td colspan="2" class="meta">Laster...</td></tr>
+            </table>
         </section>
 
-        <!-- Sensorer -->
         <section class="card">
             <h2>Temperatursensorer</h2>
             <div class="info-table-wrap">
-                <table class="info-table" id="sensor-table">
+                <table class="info-table">
                     <thead>
                         <tr>
-                            <th>Navn</th>
-                            <th>Plassering</th>
-                            <th>1-Wire ID</th>
+                            <th>Sensor</th>
+                            <th>Posisjon</th>
+                            <th>Temperatur nå</th>
                         </tr>
                     </thead>
                     <tbody id="sensor-tbody">
@@ -52,16 +48,15 @@
             </div>
         </section>
 
-        <!-- Releeer -->
         <section class="card">
-            <h2>Relestyring</h2>
+            <h2>Reléer</h2>
             <div class="info-table-wrap">
-                <table class="info-table" id="relay-table">
+                <table class="info-table">
                     <thead>
                         <tr>
                             <th>Kanal</th>
-                            <th>GPIO</th>
-                            <th>Aktiv</th>
+                            <th>GPIO-pinne</th>
+                            <th>Aktiv tilstand</th>
                         </tr>
                     </thead>
                     <tbody id="relay-tbody">
@@ -71,15 +66,13 @@
             </div>
         </section>
 
-        <!-- Styringslogikk -->
         <section class="card">
             <h2>Styringslogikk</h2>
             <p class="info-description">
                 GeoLoop bruker prediktiv styring basert på 24-timers værprognose fra
-                <strong>api.met.no</strong>. Systemet evaluerer isrisiko og tar beslutninger
-                om oppvarming automatisk.
+                <strong>api.met.no</strong>. Systemet evaluerer isrisiko automatisk.
             </p>
-            <div class="risk-table-wrap">
+            <div class="info-table-wrap">
                 <table class="info-table">
                     <thead>
                         <tr>
@@ -114,12 +107,11 @@
             </div>
         </section>
 
-        <!-- Database -->
         <section class="card">
             <h2>Database</h2>
-            <div class="info-grid" id="db-info">
-                <p class="meta">Laster...</p>
-            </div>
+            <table class="kv-table" id="db-tbl">
+                <tr><td colspan="2" class="meta">Laster...</td></tr>
+            </table>
         </section>
     </main>
 
@@ -134,15 +126,13 @@
             hp_outlet:   "VP ut (T4)",
             tank:        "Tank (T5)"
         };
-
         var SENSOR_LOCATIONS = {
             loop_inlet:  "Inn til bakkesløyfe",
             loop_outlet: "Ut av bakkesløyfe",
-            hp_inlet:    "Returvann til varmepumpe",
-            hp_outlet:   "Turvann fra varmepumpe",
-            tank:        "200L buffertank"
+            hp_inlet:    "Retur til varmepumpe",
+            hp_outlet:   "Tur fra varmepumpe",
+            tank:        "Buffertank"
         };
-
         var RELAY_NAMES = {
             heat_pump:        "Varmepumpe (K1)",
             circulation_pump: "Sirkulasjonspumpe (K2)",
@@ -153,90 +143,93 @@
             return fetch(url).then(function (r) { return r.json(); });
         }
 
-        function infoItem(label, value) {
-            return '<div class="info-item">' +
-                '<span class="info-label">' + label + '</span>' +
-                '<span class="info-value">' + value + '</span></div>';
+        function kv(rows) {
+            var html = "";
+            for (var i = 0; i < rows.length; i++) {
+                html += "<tr><td>" + rows[i][0] + "</td><td>" + rows[i][1] + "</td></tr>";
+            }
+            return html;
         }
 
-        fetchJSON("/api/system").then(function (data) {
-            // System overview
-            var overview = document.getElementById("system-overview");
-            var html = "";
-            html += infoItem("Versjon", "GeoLoop v" + data.version);
-            html += infoItem("Posisjon", data.location.lat.toFixed(4) + "°N, " + data.location.lon.toFixed(4) + "°E");
-            if (data.web) {
-                html += infoItem("Webserver", data.web.host + ":" + data.web.port);
-            }
-            if (data.weather) {
-                html += infoItem("Kontrollintervall", "10 min");
-                html += infoItem("Værdata-intervall", data.weather.poll_interval_minutes + " min");
-            }
-            overview.innerHTML = html;
+        function fmtTemp(v) {
+            if (v == null) return '<span class="meta">—</span>';
+            return '<strong style="color:var(--warm)">' + v.toFixed(1) + " °C</strong>";
+        }
 
-            // Ground loop
-            var glEl = document.getElementById("ground-loop-info");
-            if (data.ground_loop) {
-                var gl = data.ground_loop;
-                var glHtml = "";
-                glHtml += infoItem("Antall sløyfer", gl.loops);
-                glHtml += infoItem("Total rørlengde", gl.total_length_m + " m");
-                glHtml += infoItem("Rørdiameter", gl.pipe_outer_mm + " mm (ytre)");
-                glHtml += infoItem("Veggtykkelse", gl.pipe_wall_mm + " mm");
-                glHtml += infoItem("Vannvolum sløyfe", "~" + gl.volume_liters + " liter");
-                if (data.tank) {
-                    glHtml += infoItem("Buffertank", data.tank.volume_liters + " liter");
-                    glHtml += infoItem("Totalt vannvolum", "~" + (gl.volume_liters + data.tank.volume_liters) + " liter");
-                }
-                glEl.innerHTML = glHtml;
-            } else {
-                glEl.innerHTML = '<p class="meta">Ikke konfigurert</p>';
-            }
+        Promise.all([fetchJSON("/api/system"), fetchJSON("/api/status")])
+        .then(function (res) {
+            var d = res[0];
+            var s = res[1];
+            var temps = s.sensors || {};
 
-            // Sensors
-            var sensorTbody = document.getElementById("sensor-tbody");
-            if (data.sensors) {
-                var sHtml = "";
-                for (var key in data.sensors) {
-                    var name = SENSOR_NAMES[key] || key;
-                    var loc = SENSOR_LOCATIONS[key] || "";
-                    var sid = data.sensors[key].id || "—";
-                    sHtml += "<tr><td>" + name + "</td><td>" + loc + "</td><td><code>" + sid + "</code></td></tr>";
-                }
-                sensorTbody.innerHTML = sHtml;
-            } else {
-                sensorTbody.innerHTML = '<tr><td colspan="3" class="meta">Ingen sensorer konfigurert</td></tr>';
-            }
+            // System
+            var sysRows = [
+                ["Versjon", "GeoLoop v" + d.version],
+                ["Posisjon", d.location.lat.toFixed(4) + "°N, " + d.location.lon.toFixed(4) + "°E"]
+            ];
+            if (d.weather) sysRows.push(["Værdata-intervall", d.weather.poll_interval_minutes + " min"]);
+            sysRows.push(["Kontrollintervall", "10 min"]);
+            if (d.web) sysRows.push(["Webserver", d.web.host + ":" + d.web.port]);
+            document.getElementById("system-tbl").innerHTML = kv(sysRows);
 
-            // Relays
-            var relayTbody = document.getElementById("relay-tbody");
-            if (data.relays) {
-                var rHtml = "";
-                for (var key in data.relays) {
-                    var name = RELAY_NAMES[key] || key;
-                    var r = data.relays[key];
-                    rHtml += "<tr><td>" + name + "</td><td>GPIO " + r.gpio_pin + "</td><td>" + (r.active_high ? "HIGH" : "LOW") + "</td></tr>";
-                }
-                relayTbody.innerHTML = rHtml;
-            } else {
-                relayTbody.innerHTML = '<tr><td colspan="3" class="meta">Ingen reléer konfigurert</td></tr>';
+            // Anlegg
+            var loopRows = [];
+            if (d.ground_loop) {
+                var gl = d.ground_loop;
+                loopRows.push(["Antall sløyfer", gl.loops]);
+                loopRows.push(["Total rørlengde", gl.total_length_m + " m"]);
+                loopRows.push(["Rørdiameter (ytre/indre)", gl.pipe_outer_mm + " / " + (gl.pipe_outer_mm - 2 * gl.pipe_wall_mm) + " mm"]);
+                loopRows.push(["Vannvolum, bakkesløyfe", "~" + gl.volume_liters + " liter"]);
             }
+            if (d.tank) {
+                loopRows.push(["Buffertank", d.tank.volume_liters + " liter"]);
+                if (d.ground_loop) loopRows.push(["Totalt vannvolum", "~" + (d.ground_loop.volume_liters + d.tank.volume_liters) + " liter"]);
+            }
+            document.getElementById("loop-tbl").innerHTML = loopRows.length
+                ? kv(loopRows)
+                : '<tr><td colspan="2" class="meta">Ikke konfigurert</td></tr>';
+
+            // Sensorer
+            var sHtml = "";
+            if (d.sensors) {
+                for (var key in d.sensors) {
+                    sHtml += "<tr><td>" + (SENSOR_NAMES[key] || key) + "</td>" +
+                             "<td>" + (SENSOR_LOCATIONS[key] || "") + "</td>" +
+                             "<td>" + fmtTemp(temps[key]) + "</td></tr>";
+                }
+            } else {
+                sHtml = '<tr><td colspan="3" class="meta">Ingen sensorer konfigurert</td></tr>';
+            }
+            document.getElementById("sensor-tbody").innerHTML = sHtml;
+
+            // Reléer
+            var rHtml = "";
+            if (d.relays) {
+                for (var key in d.relays) {
+                    var r = d.relays[key];
+                    rHtml += "<tr><td>" + (RELAY_NAMES[key] || key) + "</td>" +
+                             "<td>GPIO " + r.gpio_pin + "</td>" +
+                             "<td>" + (r.active_high ? "HIGH" : "LOW") + "</td></tr>";
+                }
+            } else {
+                rHtml = '<tr><td colspan="3" class="meta">Ingen reléer konfigurert</td></tr>';
+            }
+            document.getElementById("relay-tbody").innerHTML = rHtml;
 
             // Database
-            var dbEl = document.getElementById("db-info");
-            if (data.database) {
-                var db = data.database;
-                var dbHtml = "";
-                dbHtml += infoItem("Sensoravlesninger", db.sensor_readings.toLocaleString("nb-NO"));
-                dbHtml += infoItem("Væravlesninger", db.weather_readings.toLocaleString("nb-NO"));
-                dbHtml += infoItem("Hendelser", db.events.toLocaleString("nb-NO"));
-                dbEl.innerHTML = dbHtml;
-            } else {
-                dbEl.innerHTML = '<p class="meta">Ikke tilgjengelig</p>';
+            var dbRows = [];
+            if (d.database) {
+                dbRows.push(["Sensoravlesninger", d.database.sensor_readings.toLocaleString("nb-NO")]);
+                dbRows.push(["Væravlesninger",    d.database.weather_readings.toLocaleString("nb-NO")]);
+                dbRows.push(["Hendelser",         d.database.events.toLocaleString("nb-NO")]);
             }
-        }).catch(function () {
-            document.getElementById("system-overview").innerHTML =
-                '<p class="meta">Kunne ikke hente systeminformasjon</p>';
+            document.getElementById("db-tbl").innerHTML = dbRows.length
+                ? kv(dbRows)
+                : '<tr><td colspan="2" class="meta">Ikke tilgjengelig</td></tr>';
+        })
+        .catch(function () {
+            document.getElementById("system-tbl").innerHTML =
+                '<tr><td class="meta">Kunne ikke hente systeminformasjon</td></tr>';
         });
     })();
     </script>
