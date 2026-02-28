@@ -6,3 +6,4 @@ dist/
 config.yaml
 geoloop.db
 .pytest_cache/
+.env

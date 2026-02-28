@@ -82,6 +82,8 @@ curl https://geoloop.tommytv.no/api/status
 3. Under **Public Hostnames**: `geoloop.tommytv.no` → `http://geoloop:8000`
 4. Kopier tunnel-token til `.env`
 
+> **Mistet tokenet?** Logg inn på [Cloudflare Zero Trust](https://one.dash.cloudflare.com) → Networks → Tunnels → `geoloop` → Configure → kopier token på nytt. `.env` skal aldri committes til git.
+
 ## Prosjektstruktur
 
 ```

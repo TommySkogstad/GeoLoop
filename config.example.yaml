@@ -1,6 +1,6 @@
 location:
-  lat: 59.91
-  lon: 10.75
+  lat: 59.2732
+  lon: 10.4810
 
 weather:
   user_agent: "GeoLoop/0.1 github.com/ditt-brukernavn/geoloop"
