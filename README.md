@@ -131,6 +131,55 @@ GeoLoop/
 | `POST /api/heating/off` | Manuell overstyring: varme AV |
 | `POST /api/heating/auto` | Tilbake til automatisk styring |
 
+## Varsler (ntfy)
+
+GeoLoop sender push-varsler via [ntfy](https://ntfy.tommytv.no) ved viktige hendelser:
+
+| Hendelse | Prioritet | Tag |
+|----------|-----------|-----|
+| Isfare — varme PÅ | Høy | `warning` |
+| Modus endret: PÅ | Normal | `fire` |
+| Modus endret: AV | Normal | `snowflake` |
+| Modus endret: AUTO | Normal | `robot_face` |
+| Temperaturgrenser endret | Normal | `thermometer` |
+
+### Abonnere på varsler
+
+1. **Installer ntfy-appen** på telefonen:
+   - [Android (Google Play)](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
+   - [iOS (App Store)](https://apps.apple.com/app/ntfy/id1625396347)
+
+2. **Legg til din egen server:**
+   - Åpne appen → Innstillinger → **Administrer kontoer** → **Legg til konto**
+   - Server-URL: `https://ntfy.tommytv.no`
+   - Brukernavn: `tommy`
+   - Passord: `tommy`
+
+3. **Abonner på topic:**
+   - Trykk **+** → Skriv inn topic: `geoloop-21a`
+   - Velg serveren `ntfy.tommytv.no` (ikke ntfy.sh)
+
+Du vil nå motta push-varsler i sanntid når systemet slår seg av/på eller oppdager isfare.
+
+### Serveroppsett (for admin)
+
+GeoLoop kobler seg til ntfy med følgende miljøvariabler i `.env`:
+
+```bash
+NTFY_URL=https://ntfy.tommytv.no    # Egen ntfy-server
+NTFY_TOPIC=geoloop-21a              # Topic for varsler
+NTFY_USER=geoloop                   # Brukernavn for publisering
+NTFY_PASS=ditt-passord-her          # Passord for publisering
+```
+
+Opprett brukeren på ntfy-serveren:
+
+```bash
+# På tommytv-serveren (der ntfy kjører)
+docker exec -it ntfy ntfy user add geoloop
+docker exec ntfy ntfy access geoloop 'geoloop-*' rw
+```
+
 ## Komponenter
 
 ### Styringslogikk (kjernen)

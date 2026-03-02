@@ -141,6 +141,56 @@
         </section>
 
         <section class="card">
+            <h2>Push-varsler (ntfy)</h2>
+            <p class="info-description">
+                GeoLoop sender push-varsler ved viktige hendelser (isfare, modusendringer, terskelendringer).
+                Følg stegene under for å motta varsler på telefonen.
+            </p>
+
+            <h3 class="info-subheading">1. Installer appen</h3>
+            <p class="info-description">
+                Last ned <strong>ntfy</strong> fra
+                <a href="https://play.google.com/store/apps/details?id=io.heckel.ntfy" target="_blank">Google Play</a> eller
+                <a href="https://apps.apple.com/app/ntfy/id1625396347" target="_blank">App Store</a>.
+            </p>
+
+            <h3 class="info-subheading">2. Legg til server</h3>
+            <p class="info-description">
+                Åpne appen → Innstillinger → <strong>Administrer kontoer</strong> → <strong>Legg til konto</strong>
+            </p>
+            <table class="kv-table">
+                <tr><td>Server-URL</td><td><code>https://ntfy.tommytv.no</code></td></tr>
+                <tr><td>Brukernavn</td><td><code>tommy</code></td></tr>
+                <tr><td>Passord</td><td><code>tommy</code></td></tr>
+            </table>
+
+            <h3 class="info-subheading">3. Abonner på topic</h3>
+            <p class="info-description">
+                Trykk <strong>+</strong> → Skriv inn topic: <code>geoloop-21a</code><br>
+                Velg serveren <code>ntfy.tommytv.no</code> (ikke ntfy.sh).
+            </p>
+
+            <h3 class="info-subheading">Hendelser</h3>
+            <div class="info-table-wrap">
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>Hendelse</th>
+                            <th>Prioritet</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Isfare — varme PÅ</td><td>Høy</td></tr>
+                        <tr><td>Modus endret: PÅ</td><td>Normal</td></tr>
+                        <tr><td>Modus endret: AV</td><td>Normal</td></tr>
+                        <tr><td>Modus endret: AUTO</td><td>Normal</td></tr>
+                        <tr><td>Temperaturgrenser endret</td><td>Normal</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card">
             <h2>Database</h2>
             <table class="kv-table" id="db-tbl">
                 <tr><td colspan="2" class="meta">Laster...</td></tr>
