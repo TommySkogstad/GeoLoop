@@ -217,7 +217,10 @@ nano .env
 Lim inn:
 ```
 CLOUDFLARE_TUNNEL_TOKEN=eyJh...tokenet ditt...
+GEOLOOP_PASSWORD=ditt-passord-her
 ```
+
+> **GEOLOOP_PASSWORD** er valgfritt. Hvis det er satt, kreves passord for å åpne dashboardet. Uten det er dashboardet åpent for alle med tilgang til URL-en.
 
 ### 5.3 Konfigurer GeoLoop
 

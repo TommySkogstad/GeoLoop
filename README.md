@@ -62,7 +62,7 @@ cd GeoLoop
 
 # 1. Opprett tunnel i Cloudflare Zero Trust og kopier token
 cp .env.example .env
-nano .env   # lim inn CLOUDFLARE_TUNNEL_TOKEN=...
+nano .env   # lim inn CLOUDFLARE_TUNNEL_TOKEN=... og sett GEOLOOP_PASSWORD
 
 # 2. Konfigurer posisjon og database-sti
 cp config.example.yaml config.yaml
@@ -90,7 +90,7 @@ curl https://geoloop.tommytv.no/api/status
 GeoLoop/
 ├── Dockerfile                # Docker-image (Python 3.11-slim, multi-arch)
 ├── docker-compose.yml        # Cloudflare Tunnel + GeoLoop-app
-├── .env.example              # Mal for CLOUDFLARE_TUNNEL_TOKEN
+├── .env.example              # Mal for miljøvariabler (tunnel token, passord)
 ├── pyproject.toml            # Avhengigheter og prosjektmetadata
 ├── config.example.yaml       # Eksempelkonfigurasjon
 ├── geoloop/
@@ -119,9 +119,17 @@ GeoLoop/
 
 | Endepunkt | Beskrivelse |
 |-----------|-------------|
+| `POST /api/login` | Logg inn med passord (sett via `GEOLOOP_PASSWORD`) |
 | `GET /api/status` | Gjeldende tilstand (vær, sensorer, releer) |
 | `GET /api/weather` | Siste værdata + 24-timers prognose |
+| `GET /api/sensors` | Les alle temperatursensorer |
+| `GET /api/history?hours=24` | Sensorhistorikk og VP-perioder |
 | `GET /api/log?limit=50` | Historikk fra databasen |
+| `GET /api/thresholds` | Gjeldende temperaturgrenser |
+| `POST /api/thresholds` | Oppdater temperaturgrenser |
+| `POST /api/heating/on` | Manuell overstyring: varme PÅ |
+| `POST /api/heating/off` | Manuell overstyring: varme AV |
+| `POST /api/heating/auto` | Tilbake til automatisk styring |
 
 ## Komponenter
 

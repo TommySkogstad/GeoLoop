@@ -20,8 +20,10 @@ logger = logging.getLogger(__name__)
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
-_PASSWORD = "21a21a21a"
-_AUTH_TOKEN = hashlib.sha256(_PASSWORD.encode()).hexdigest()
+import os
+
+_PASSWORD = os.environ.get("GEOLOOP_PASSWORD", "")
+_AUTH_TOKEN = hashlib.sha256(_PASSWORD.encode()).hexdigest() if _PASSWORD else ""
 _AUTH_COOKIE = "geoloop_auth"
 
 app = FastAPI(title="GeoLoop", version="0.1.0")
@@ -31,6 +33,9 @@ app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     """Enkel passord-beskyttelse via cookie."""
+    if not _PASSWORD:
+        return await call_next(request)
+
     path = request.url.path
     # Tillat login, statiske filer og healthcheck uten auth
     if path in ("/login", "/api/login", "/api/status") or path.startswith("/static/"):
