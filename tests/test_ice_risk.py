@@ -70,7 +70,7 @@ class TestModerateRisk:
 
     def test_should_turn_on_with_safety_bias(self):
         """MODERATE → alltid TURN_ON (sikkerhetsbias)."""
-        temps = [4.0] * 7 + [15.0] * 17
+        temps = [2.5] * 7 + [15.0] * 17
         result = evaluate(_make_forecast(temps), currently_on=False)
         assert result.decision == HeatingDecision.TURN_ON
 
@@ -163,14 +163,14 @@ class TestEdgeCases:
         result = evaluate(_make_forecast(temps), sensor_readings=readings)
         assert result.decision == HeatingDecision.TURN_OFF
 
-    def test_boundary_temp_minus_5_is_in_ice_zone(self):
-        """-5.0°C er innenfor faresonen."""
-        temps = [-5.0] * 7 + [15.0] * 17
+    def test_boundary_temp_minus_3_is_in_ice_zone(self):
+        """-3.0°C er innenfor faresonen."""
+        temps = [-3.0] * 7 + [15.0] * 17
         result = evaluate(_make_forecast(temps))
         assert result.details["ice_zone_hours"] >= 6
 
-    def test_boundary_temp_plus_5_is_in_ice_zone(self):
-        """+5.0°C er innenfor faresonen."""
-        temps = [5.0] * 7 + [15.0] * 17
+    def test_boundary_temp_plus_3_is_in_ice_zone(self):
+        """+3.0°C er innenfor faresonen."""
+        temps = [3.0] * 7 + [15.0] * 17
         result = evaluate(_make_forecast(temps))
         assert result.details["ice_zone_hours"] >= 6

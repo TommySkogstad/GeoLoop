@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -30,6 +30,17 @@ _sensors: dict[str, TemperatureSensor] = {}
 _controller: HeatingController | None = None
 _config: AppConfig | None = None
 
+# Manuell overstyring: "on", "off", eller None (auto)
+_manual_override: str | None = None
+
+# Justerbare temperaturgrenser (runtime-state, initialiseres fra config)
+_thresholds: dict[str, float] = {
+    "ice_temp_min": -3.0,
+    "ice_temp_max": 3.0,
+    "critical_temp_min": -1.0,
+    "critical_temp_max": 2.0,
+}
+
 
 def configure(
     met_client: MetClient,
@@ -41,7 +52,7 @@ def configure(
     config: AppConfig | None = None,
 ) -> None:
     """Sett opp delte avhengigheter for ruter."""
-    global _met_client, _store, _lat, _lon, _sensors, _controller, _config
+    global _met_client, _store, _lat, _lon, _sensors, _controller, _config, _thresholds
     _met_client = met_client
     _store = store
     _lat = lat
@@ -49,6 +60,13 @@ def configure(
     _sensors = sensors or {}
     _controller = controller
     _config = config
+
+    if config and config.thresholds:
+        t = config.thresholds
+        _thresholds["ice_temp_min"] = t.ice_temp_min
+        _thresholds["ice_temp_max"] = t.ice_temp_max
+        _thresholds["critical_temp_min"] = t.critical_temp_min
+        _thresholds["critical_temp_max"] = t.critical_temp_max
 
 
 @app.get("/")
@@ -131,7 +149,10 @@ async def status() -> dict:
 
     heating = None
     if _controller:
-        heating = {"on": await _controller.is_on()}
+        heating = {
+            "on": await _controller.is_on(),
+            "mode": "auto" if _manual_override is None else _manual_override,
+        }
 
     sensor_data = {}
     for name, sensor in _sensors.items():
@@ -141,6 +162,7 @@ async def status() -> dict:
         "weather": current,
         "heating": heating,
         "sensors": sensor_data,
+        "thresholds": dict(_thresholds),
     }
 
 
@@ -184,28 +206,84 @@ async def sensors() -> dict:
 
 @app.post("/api/heating/on")
 async def heating_on() -> dict:
-    """Manuell overstyring: slå på varme."""
+    """Manuell overstyring: slå på varme (persistent)."""
+    global _manual_override
     if not _controller:
         return {"error": "Controller ikke konfigurert"}
 
+    _manual_override = "on"
     await _controller.turn_on()
     if _store:
-        _store.log_event("manual_on", "Manuell overstyring: varme PÅ")
-    logger.info("Manuell overstyring: varme PÅ")
-    return {"heating": {"on": True}}
+        _store.log_event("manual_on", "Manuell overstyring: varme PÅ (vedvarende)")
+    logger.info("Manuell overstyring: varme PÅ (vedvarende)")
+    return {"heating": {"on": True, "mode": "on"}}
 
 
 @app.post("/api/heating/off")
 async def heating_off() -> dict:
-    """Manuell overstyring: slå av varme."""
+    """Manuell overstyring: slå av varme (persistent)."""
+    global _manual_override
     if not _controller:
         return {"error": "Controller ikke konfigurert"}
 
+    _manual_override = "off"
     await _controller.turn_off()
     if _store:
-        _store.log_event("manual_off", "Manuell overstyring: varme AV")
-    logger.info("Manuell overstyring: varme AV")
-    return {"heating": {"on": False}}
+        _store.log_event("manual_off", "Manuell overstyring: varme AV (vedvarende)")
+    logger.info("Manuell overstyring: varme AV (vedvarende)")
+    return {"heating": {"on": False, "mode": "off"}}
+
+
+@app.post("/api/heating/auto")
+async def heating_auto() -> dict:
+    """Tilbake til automatisk styring."""
+    global _manual_override
+    _manual_override = None
+    on = False
+    if _controller:
+        on = await _controller.is_on()
+    if _store:
+        _store.log_event("auto_mode", "Tilbake til automatisk styring")
+    logger.info("Tilbake til automatisk styring")
+    return {"heating": {"on": on, "mode": "auto"}}
+
+
+def get_manual_override() -> str | None:
+    """Hent gjeldende overstyringsstatus (brukes av kontrollsyklus)."""
+    return _manual_override
+
+
+def get_thresholds() -> dict[str, float]:
+    """Hent gjeldende temperaturgrenser (brukes av kontrollsyklus)."""
+    return dict(_thresholds)
+
+
+@app.get("/api/thresholds")
+async def get_thresholds_api() -> dict:
+    """Hent gjeldende temperaturgrenser."""
+    return dict(_thresholds)
+
+
+@app.post("/api/thresholds")
+async def set_thresholds_api(request: Request) -> dict:
+    """Oppdater temperaturgrenser. Maks ±10 grader."""
+    body = await request.json()
+    for key in ("ice_temp_min", "ice_temp_max", "critical_temp_min", "critical_temp_max"):
+        if key in body:
+            val = float(body[key])
+            if val < -10.0 or val > 10.0:
+                return {"error": f"{key} må være mellom -10 og +10"}
+            _thresholds[key] = val
+
+    if _thresholds["ice_temp_min"] >= _thresholds["ice_temp_max"]:
+        return {"error": "ice_temp_min må være lavere enn ice_temp_max"}
+    if _thresholds["critical_temp_min"] >= _thresholds["critical_temp_max"]:
+        return {"error": "critical_temp_min må være lavere enn critical_temp_max"}
+
+    if _store:
+        _store.log_event("thresholds_changed", f"Nye grenser: {_thresholds}")
+    logger.info("Temperaturgrenser oppdatert: %s", _thresholds)
+    return dict(_thresholds)
 
 
 @app.get("/api/history")

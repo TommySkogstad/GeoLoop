@@ -29,7 +29,9 @@ header {
     border-bottom: 1px solid var(--accent);
 }
 
-header h1 { font-size: 1.25rem; font-weight: 600; }
+header h1 { font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+
+.header-logo { width: 36px; height: 36px; border-radius: 50%; }
 
 .header-link {
     color: inherit;
@@ -114,14 +116,67 @@ button {
 
 button:hover { opacity: 0.85; }
 
-#btn-on {
-    background: var(--on);
-    color: #1a1a2e;
+.ctrl-btn {
+    flex: 1;
+    background: var(--accent);
+    color: var(--text-muted);
+    border: 1px solid transparent;
 }
 
-#btn-off {
+.ctrl-btn.active-on {
+    background: var(--on);
+    color: #1a1a2e;
+    border-color: var(--on);
+}
+
+.ctrl-btn.active-off {
     background: var(--off);
     color: #fff;
+    border-color: var(--off);
+}
+
+.ctrl-btn.active-auto {
+    background: var(--warm);
+    color: #1a1a2e;
+    border-color: var(--warm);
+}
+
+.mode-indicator {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+/* Thresholds */
+.thresholds-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.threshold-item label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.threshold-control {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.threshold-control input[type="range"] {
+    flex: 1;
+    accent-color: var(--warm);
+    height: 6px;
+}
+
+.threshold-control span {
+    min-width: 55px;
+    text-align: right;
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 /* Grid */
@@ -223,6 +278,8 @@ canvas {
 .event-type.manual_off { color: var(--warm); }
 .event-type.error { color: var(--danger); }
 .event-type.startup { color: var(--text-muted); }
+.event-type.auto_mode { color: var(--warm); }
+.event-type.thresholds_changed { color: var(--warm); }
 
 .event-msg { flex: 1; margin: 0 0.5rem; color: var(--text-muted); }
 .event-time { color: var(--text-muted); white-space: nowrap; }
@@ -285,6 +342,14 @@ canvas {
 }
 
 .info-description strong { color: var(--text); }
+.info-description p { margin: 0; }
+
+.info-subheading {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 1rem 0 0.4rem;
+}
 
 .info-table-wrap { overflow-x: auto; }
 

@@ -52,3 +52,10 @@ ground_loop:
 tank:
   volume_liters: 200     # 200 liter buffertank
   # Tankføler koblet til VP klemme 15/16
+
+# Temperaturgrenser for isrisiko (justerbare via UI, maks ±10°C)
+thresholds:
+  ice_temp_min: -3.0     # Nedre grense for faresone
+  ice_temp_max: 3.0      # Øvre grense for faresone
+  critical_temp_min: -1.0  # Nedre grense for kritisk sone
+  critical_temp_max: 2.0   # Øvre grense for kritisk sone

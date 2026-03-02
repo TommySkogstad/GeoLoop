@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoLoop Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css?v=6">
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="stylesheet" href="/static/style.css?v=7">
 </head>
 <body>
     <header>
-        <h1><a href="/" class="header-link">GeoLoop</a></h1>
+        <h1><a href="/" class="header-link"><img src="/static/logo.svg" alt="GeoLoop" class="header-logo">GeoLoop</a></h1>
         <nav class="nav-links">
             <a href="/" class="active">Dashboard</a>
             <a href="/info">System</a>
@@ -24,9 +25,11 @@
                 <span class="dot"></span>
                 <span class="label">Ukjent</span>
             </div>
+            <div class="mode-indicator" id="mode-indicator"></div>
             <div class="controls">
-                <button id="btn-on" onclick="heatingOn()">Slå PÅ</button>
-                <button id="btn-off" onclick="heatingOff()">Slå AV</button>
+                <button id="btn-off" class="ctrl-btn" onclick="heatingOff()">AV</button>
+                <button id="btn-auto" class="ctrl-btn" onclick="heatingAuto()">AUTO</button>
+                <button id="btn-on" class="ctrl-btn" onclick="heatingOn()">PÅ</button>
             </div>
         </section>
 
@@ -77,6 +80,45 @@
             </div>
         </section>
 
+        <!-- Temperaturgrenser -->
+        <section class="card">
+            <h2>Temperaturgrenser</h2>
+            <p class="meta" style="margin-bottom: 0.75rem">
+                <strong>Faresone</strong> definerer temperaturområdet der isdannelse kan oppstå. Når mange timer i prognosen faller innenfor dette området, øker risikoen.
+                <strong>Kritisk sone</strong> er det smalere området rundt 0°C der is er mest sannsynlig — spesielt kombinert med nedbør.
+            </p>
+            <div class="thresholds-grid">
+                <div class="threshold-item">
+                    <label>Faresone min</label>
+                    <div class="threshold-control">
+                        <input type="range" id="th-ice-min" min="-10" max="0" step="0.5" value="-3">
+                        <span id="th-ice-min-val">-3.0°C</span>
+                    </div>
+                </div>
+                <div class="threshold-item">
+                    <label>Faresone maks</label>
+                    <div class="threshold-control">
+                        <input type="range" id="th-ice-max" min="0" max="10" step="0.5" value="3">
+                        <span id="th-ice-max-val">3.0°C</span>
+                    </div>
+                </div>
+                <div class="threshold-item">
+                    <label>Kritisk sone min</label>
+                    <div class="threshold-control">
+                        <input type="range" id="th-crit-min" min="-10" max="0" step="0.5" value="-1">
+                        <span id="th-crit-min-val">-1.0°C</span>
+                    </div>
+                </div>
+                <div class="threshold-item">
+                    <label>Kritisk sone maks</label>
+                    <div class="threshold-control">
+                        <input type="range" id="th-crit-max" min="0" max="10" step="0.5" value="2">
+                        <span id="th-crit-max-val">2.0°C</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Prognose -->
         <section class="card">
             <h2>24t prognose</h2>
@@ -92,6 +134,6 @@
         </section>
     </main>
 
-    <script src="/static/app.js?v=6"></script>
+    <script src="/static/app.js?v=7"></script>
 </body>
 </html>

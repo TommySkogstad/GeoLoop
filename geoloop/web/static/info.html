@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GeoLoop — Systeminformasjon</title>
-    <link rel="stylesheet" href="/static/style.css?v=6">
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="stylesheet" href="/static/style.css?v=7">
 </head>
 <body>
     <header>
-        <h1><a href="/" class="header-link">GeoLoop</a></h1>
+        <h1><a href="/" class="header-link"><img src="/static/logo.svg" alt="GeoLoop" class="header-logo">GeoLoop</a></h1>
         <nav class="nav-links">
             <a href="/">Dashboard</a>
             <a href="/info" class="active">System</a>
@@ -70,8 +71,31 @@
             <h2>Styringslogikk</h2>
             <p class="info-description">
                 GeoLoop bruker prediktiv styring basert på 24-timers værprognose fra
-                <strong>api.met.no</strong>. Systemet evaluerer isrisiko automatisk.
+                <strong>api.met.no</strong>. Hvert 10. minutt henter systemet oppdatert prognose
+                og teller hvor mange av de neste 24 timene som faller innenfor de to temperatursonene.
+                Basert på dette bestemmes risikonivå og handling.
             </p>
+
+            <h3 class="info-subheading">Temperatursonene</h3>
+            <p class="info-description">
+                De fire sliderne på dashboard-siden styrer to temperatursoner som brukes til å vurdere isrisiko:
+            </p>
+            <div class="info-description">
+                <p><strong>Faresone</strong> (standard: <span id="info-ice-range">-3.0°C til +3.0°C</span>)<br>
+                Det brede temperaturområdet der isdannelse kan forekomme. Systemet teller hvor mange timer
+                i prognosen som faller innenfor dette intervallet. Jo flere timer, jo høyere risiko.
+                Utvid faresonen for å gjøre systemet mer forsiktig (varme slås på oftere),
+                eller innsnevr den for å spare energi.</p>
+
+                <p style="margin-top: 0.5rem"><strong>Kritisk sone</strong> (standard: <span id="info-crit-range">-1.0°C til +2.0°C</span>)<br>
+                Et smalere intervall rundt 0°C der is er mest sannsynlig.
+                Brukes i to sammenhenger: hvis det er nedbør innenfor kritisk sone gir det umiddelbart
+                <span class="risk-badge risk-high">HØY</span> risiko, og ≥4 timer i kritisk sone
+                uten nedbør gir også <span class="risk-badge risk-high">HØY</span>.
+                Utvid kritisk sone for å fange opp flere situasjoner med nedbør nær frysepunktet.</p>
+            </div>
+
+            <h3 class="info-subheading">Beslutningstabell</h3>
             <div class="info-table-wrap">
                 <table class="info-table">
                     <thead>
@@ -81,30 +105,38 @@
                             <th>Handling</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="risk-table-body">
                         <tr>
                             <td><span class="risk-badge risk-high">HØY</span></td>
-                            <td>Nedbør nær 0°C, eller ≥4t i -1 til +2°C</td>
+                            <td>Nedbør i kritisk sone, eller ≥4t i kritisk sone</td>
                             <td>Slå PÅ</td>
                         </tr>
                         <tr>
                             <td><span class="risk-badge risk-moderate">MODERAT</span></td>
-                            <td>≥6 timer i issonen (-5 til +5°C)</td>
+                            <td>≥6 timer i faresonen</td>
                             <td>Slå PÅ</td>
                         </tr>
                         <tr>
                             <td><span class="risk-badge risk-low">LAV</span></td>
-                            <td>≥2 timer i issonen</td>
+                            <td>2–5 timer i faresonen</td>
                             <td>Behold tilstand</td>
                         </tr>
                         <tr>
                             <td><span class="risk-badge risk-none">INGEN</span></td>
-                            <td>&lt; 2 timer i issonen</td>
+                            <td>&lt; 2 timer i faresonen</td>
                             <td>Slå AV</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
+
+            <h3 class="info-subheading">Manuell overstyring</h3>
+            <p class="info-description">
+                Med knappene <strong>AV</strong>, <strong>AUTO</strong> og <strong>PÅ</strong> på dashboard-siden
+                kan du overstyre den automatiske logikken. Overstyringen er
+                <strong>vedvarende</strong> — den gjelder til du eksplisitt trykker <strong>AUTO</strong> igjen.
+                Kontrollsyklusen hopper over evaluering så lenge manuell overstyring er aktiv.
+            </p>
         </section>
 
         <section class="card">
@@ -161,11 +193,20 @@
             return '<strong style="color:var(--warm)">' + v.toFixed(1) + " °C</strong>";
         }
 
-        Promise.all([fetchJSON("/api/system"), fetchJSON("/api/status")])
+        Promise.all([fetchJSON("/api/system"), fetchJSON("/api/status"), fetchJSON("/api/thresholds")])
         .then(function (res) {
             var d = res[0];
             var s = res[1];
+            var th = res[2] || {};
             var temps = s.sensors || {};
+
+            // Oppdater grenseverdier i teksten
+            if (th.ice_temp_min != null) {
+                document.getElementById("info-ice-range").textContent =
+                    th.ice_temp_min.toFixed(1) + "\u00b0C til +" + th.ice_temp_max.toFixed(1) + "\u00b0C";
+                document.getElementById("info-crit-range").textContent =
+                    th.critical_temp_min.toFixed(1) + "\u00b0C til +" + th.critical_temp_max.toFixed(1) + "\u00b0C";
+            }
 
             // System
             var sysRows = [

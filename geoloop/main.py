@@ -15,7 +15,7 @@ from geoloop.engine.ice_risk import evaluate
 from geoloop.engine.models import HeatingDecision, SensorReadings
 from geoloop.sensors.stub import StubSensor
 from geoloop.weather.met_client import MetClient
-from geoloop.web.app import app, configure
+from geoloop.web.app import app, configure, get_manual_override, get_thresholds
 
 if TYPE_CHECKING:
     from geoloop.config import AppConfig
@@ -138,6 +138,15 @@ async def _control_loop(
 ) -> None:
     """Kontrollsyklus: les sensorer → hent vær → evaluer → handle → logg."""
     try:
+        # Sjekk manuell overstyring
+        override = get_manual_override()
+        if override is not None:
+            logger.info(
+                "Kontrollsyklus: manuell overstyring aktiv (%s) — hopper over evaluering",
+                override,
+            )
+            return
+
         # Les sensorer for evaluering (logging gjøres av _sensor_poll)
         readings = await _read_all_sensors(sensors)
 
@@ -151,9 +160,20 @@ async def _control_loop(
             wind_speed=c.wind_speed,
         )
 
+        # Hent gjeldende temperaturgrenser
+        thresholds = get_thresholds()
+
         # Evaluer isrisiko
         currently_on = await controller.is_on()
-        result = evaluate(forecast, readings, currently_on)
+        result = evaluate(
+            forecast,
+            readings,
+            currently_on,
+            ice_temp_min=thresholds["ice_temp_min"],
+            ice_temp_max=thresholds["ice_temp_max"],
+            critical_temp_min=thresholds["critical_temp_min"],
+            critical_temp_max=thresholds["critical_temp_max"],
+        )
 
         # Handle beslutning
         if result.decision == HeatingDecision.TURN_ON and not currently_on:

@@ -54,6 +54,14 @@ class TankConfig:
 
 
 @dataclass
+class ThresholdsConfig:
+    ice_temp_min: float = -3.0
+    ice_temp_max: float = 3.0
+    critical_temp_min: float = -1.0
+    critical_temp_max: float = 2.0
+
+
+@dataclass
 class AppConfig:
     location: LocationConfig
     weather: WeatherConfig
@@ -63,6 +71,7 @@ class AppConfig:
     sensors: dict[str, SensorConfig] | None = None
     ground_loop: GroundLoopConfig | None = None
     tank: TankConfig | None = None
+    thresholds: ThresholdsConfig = field(default_factory=ThresholdsConfig)
 
 
 def load_config(path: Path | None = None) -> AppConfig:
@@ -104,6 +113,8 @@ def load_config(path: Path | None = None) -> AppConfig:
     if "tank" in raw:
         tank = TankConfig(**raw["tank"])
 
+    thresholds = ThresholdsConfig(**raw.get("thresholds", {}))
+
     return AppConfig(
         location=LocationConfig(**raw["location"]),
         weather=WeatherConfig(**raw["weather"]),
@@ -113,4 +124,5 @@ def load_config(path: Path | None = None) -> AppConfig:
         sensors=sensors,
         ground_loop=ground_loop,
         tank=tank,
+        thresholds=thresholds,
     )

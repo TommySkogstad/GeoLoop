@@ -3,11 +3,30 @@
 
     var POLL_INTERVAL = 30000;
     var pollTimer = null;
+    var currentMode = "auto"; // "auto", "on", "off"
+    var currentThresholds = {
+        ice_temp_min: -3, ice_temp_max: 3,
+        critical_temp_min: -1, critical_temp_max: 2
+    };
 
     // -- API helpers --
 
     function fetchJSON(url, opts) {
         return fetch(url, opts).then(function (r) { return r.json(); });
+    }
+
+    function updateModeButtons(mode) {
+        currentMode = mode;
+        var btnOn = document.getElementById("btn-on");
+        var btnOff = document.getElementById("btn-off");
+        var btnAuto = document.getElementById("btn-auto");
+        btnOn.className = "ctrl-btn" + (mode === "on" ? " active-on" : "");
+        btnOff.className = "ctrl-btn" + (mode === "off" ? " active-off" : "");
+        btnAuto.className = "ctrl-btn" + (mode === "auto" ? " active-auto" : "");
+
+        var modeEl = document.getElementById("mode-indicator");
+        var labels = { auto: "Automatisk styring", on: "Manuelt PÅ", off: "Manuelt AV" };
+        modeEl.textContent = labels[mode] || "";
     }
 
     function updateStatus() {
@@ -18,6 +37,13 @@
                 var on = data.heating.on;
                 el.className = "status-indicator " + (on ? "status-on" : "status-off");
                 el.querySelector(".label").textContent = on ? "PÅ" : "AV";
+                updateModeButtons(data.heating.mode || "auto");
+            }
+
+            // Thresholds
+            if (data.thresholds) {
+                currentThresholds = data.thresholds;
+                syncThresholdSliders(data.thresholds);
             }
 
             // Weather
@@ -143,10 +169,9 @@
 
         ctx.clearRect(0, 0, w, h);
 
-        // Ice zone background
-        var style = getComputedStyle(document.documentElement);
-        var iceTop = pad.top + ch * (1 - (5 - tMin) / (tMax - tMin));
-        var iceBot = pad.top + ch * (1 - (-5 - tMin) / (tMax - tMin));
+        // Ice zone background (dynamic thresholds)
+        var iceTop = pad.top + ch * (1 - (currentThresholds.ice_temp_max - tMin) / (tMax - tMin));
+        var iceBot = pad.top + ch * (1 - (currentThresholds.ice_temp_min - tMin) / (tMax - tMin));
         iceTop = Math.max(pad.top, Math.min(pad.top + ch, iceTop));
         iceBot = Math.max(pad.top, Math.min(pad.top + ch, iceBot));
         ctx.fillStyle = "rgba(255, 82, 82, 0.08)";
@@ -390,18 +415,87 @@
     // -- Manual controls --
 
     window.heatingOn = function () {
-        fetchJSON("/api/heating/on", { method: "POST" }).then(function () {
+        fetchJSON("/api/heating/on", { method: "POST" }).then(function (data) {
+            if (data.heating) updateModeButtons(data.heating.mode);
             updateStatus();
             updateLog();
         });
     };
 
     window.heatingOff = function () {
-        fetchJSON("/api/heating/off", { method: "POST" }).then(function () {
+        fetchJSON("/api/heating/off", { method: "POST" }).then(function (data) {
+            if (data.heating) updateModeButtons(data.heating.mode);
             updateStatus();
             updateLog();
         });
     };
+
+    window.heatingAuto = function () {
+        fetchJSON("/api/heating/auto", { method: "POST" }).then(function (data) {
+            if (data.heating) updateModeButtons(data.heating.mode);
+            updateStatus();
+            updateLog();
+        });
+    };
+
+    // -- Threshold controls --
+
+    var thresholdDebounce = null;
+
+    function syncThresholdSliders(t) {
+        var ids = {
+            "th-ice-min": t.ice_temp_min,
+            "th-ice-max": t.ice_temp_max,
+            "th-crit-min": t.critical_temp_min,
+            "th-crit-max": t.critical_temp_max,
+        };
+        for (var id in ids) {
+            var slider = document.getElementById(id);
+            var valEl = document.getElementById(id + "-val");
+            if (slider && valEl) {
+                slider.value = ids[id];
+                valEl.textContent = ids[id].toFixed(1) + "\u00b0C";
+            }
+        }
+    }
+
+    function onThresholdChange() {
+        var body = {
+            ice_temp_min: parseFloat(document.getElementById("th-ice-min").value),
+            ice_temp_max: parseFloat(document.getElementById("th-ice-max").value),
+            critical_temp_min: parseFloat(document.getElementById("th-crit-min").value),
+            critical_temp_max: parseFloat(document.getElementById("th-crit-max").value),
+        };
+
+        // Oppdater visning umiddelbart
+        document.getElementById("th-ice-min-val").textContent = body.ice_temp_min.toFixed(1) + "\u00b0C";
+        document.getElementById("th-ice-max-val").textContent = body.ice_temp_max.toFixed(1) + "\u00b0C";
+        document.getElementById("th-crit-min-val").textContent = body.critical_temp_min.toFixed(1) + "\u00b0C";
+        document.getElementById("th-crit-max-val").textContent = body.critical_temp_max.toFixed(1) + "\u00b0C";
+
+        currentThresholds = body;
+
+        // Oppdater prognose-graf umiddelbart
+        updateForecast();
+
+        // Debounce API-kall
+        clearTimeout(thresholdDebounce);
+        thresholdDebounce = setTimeout(function () {
+            fetch("/api/thresholds", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+        }, 500);
+    }
+
+    (function () {
+        var sliders = ["th-ice-min", "th-ice-max", "th-crit-min", "th-crit-max"];
+        for (var i = 0; i < sliders.length; i++) {
+            var el = document.getElementById(sliders[i]);
+            if (el) el.addEventListener("input", onThresholdChange);
+        }
+    })();
 
     // -- Init --
 
