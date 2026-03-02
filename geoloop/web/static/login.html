@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoLoop — Logg inn</title>
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg">
+    <link rel="stylesheet" href="/static/style.css?v=8">
+</head>
+<body>
+    <main style="display:flex; align-items:center; justify-content:center; min-height:100vh;">
+        <div class="card" style="max-width:320px; width:100%; text-align:center;">
+            <img src="/static/logo.svg" alt="GeoLoop" style="width:96px; height:96px; margin:0 auto 1rem;">
+            <h2 style="margin-bottom:1rem;">GeoLoop</h2>
+            <form id="login-form">
+                <input type="password" id="pw" placeholder="Passord" autofocus
+                    style="width:100%; padding:0.6rem; border:1px solid var(--accent); border-radius:var(--radius);
+                           background:var(--bg); color:var(--text); font-size:0.9rem; margin-bottom:0.75rem;">
+                <button type="submit" style="width:100%; background:var(--on); color:#1a1a2e;">Logg inn</button>
+            </form>
+            <p id="login-error" class="meta" style="color:var(--danger); margin-top:0.5rem; display:none;">Feil passord</p>
+        </div>
+    </main>
+    <script>
+    document.getElementById("login-form").addEventListener("submit", function(e) {
+        e.preventDefault();
+        var pw = document.getElementById("pw").value;
+        fetch("/api/login", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({password: pw})
+        }).then(function(r) {
+            if (r.ok) { window.location.href = "/"; }
+            else {
+                document.getElementById("login-error").style.display = "block";
+                document.getElementById("pw").value = "";
+                document.getElementById("pw").focus();
+            }
+        });
+    });
+    </script>
+</body>
+</html>

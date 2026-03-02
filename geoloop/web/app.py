@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 if TYPE_CHECKING:
@@ -19,8 +20,29 @@ logger = logging.getLogger(__name__)
 
 _STATIC_DIR = Path(__file__).parent / "static"
 
+_PASSWORD = "21a21a21a"
+_AUTH_TOKEN = hashlib.sha256(_PASSWORD.encode()).hexdigest()
+_AUTH_COOKIE = "geoloop_auth"
+
 app = FastAPI(title="GeoLoop", version="0.1.0")
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
+
+
+@app.middleware("http")
+async def auth_middleware(request: Request, call_next):
+    """Enkel passord-beskyttelse via cookie."""
+    path = request.url.path
+    # Tillat login, statiske filer og healthcheck uten auth
+    if path in ("/login", "/api/login", "/api/status") or path.startswith("/static/"):
+        return await call_next(request)
+
+    token = request.cookies.get(_AUTH_COOKIE)
+    if token != _AUTH_TOKEN:
+        if path.startswith("/api/"):
+            return JSONResponse({"error": "Ikke autentisert"}, status_code=401)
+        return RedirectResponse("/login")
+
+    return await call_next(request)
 
 _met_client: MetClient | None = None
 _store: Store | None = None
@@ -67,6 +89,26 @@ def configure(
         _thresholds["ice_temp_max"] = t.ice_temp_max
         _thresholds["critical_temp_min"] = t.critical_temp_min
         _thresholds["critical_temp_max"] = t.critical_temp_max
+
+
+@app.get("/login")
+async def login_page() -> FileResponse:
+    """Server login-side."""
+    return FileResponse(_STATIC_DIR / "login.html")
+
+
+@app.post("/api/login")
+async def login(request: Request):
+    """Verifiser passord og sett auth-cookie."""
+    body = await request.json()
+    if body.get("password") == _PASSWORD:
+        response = JSONResponse({"ok": True})
+        response.set_cookie(
+            _AUTH_COOKIE, _AUTH_TOKEN,
+            httponly=True, samesite="strict", max_age=365 * 24 * 3600,
+        )
+        return response
+    return JSONResponse({"error": "Feil passord"}, status_code=401)
 
 
 @app.get("/")
