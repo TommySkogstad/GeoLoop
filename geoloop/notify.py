@@ -12,7 +12,11 @@ import httpx
 logger = logging.getLogger(__name__)
 
 _NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
-_NTFY_URL = "https://ntfy.sh" if _NTFY_TOPIC else ""
+_NTFY_URL = os.environ.get("NTFY_URL", "https://ntfy.sh")
+_NTFY_USER = os.environ.get("NTFY_USER", "")
+_NTFY_PASS = os.environ.get("NTFY_PASS", "")
+if not _NTFY_TOPIC:
+    _NTFY_URL = ""
 
 
 async def send(title: str, message: str, priority: str = "default", tags: str = "") -> None:
@@ -29,9 +33,11 @@ async def send(title: str, message: str, priority: str = "default", tags: str = 
     if tags:
         payload["tags"] = [t.strip() for t in tags.split(",")]
 
+    auth = (_NTFY_USER, _NTFY_PASS) if _NTFY_USER else None
+
     for attempt in range(3):
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(auth=auth) as client:
                 await client.post(
                     _NTFY_URL,
                     content=json.dumps(payload),
