@@ -198,6 +198,12 @@
                 <tr><td colspan="2" class="meta">Laster...</td></tr>
             </table>
         </section>
+        <!-- Systeminformasjon -->
+        <footer class="system-footer" id="system-footer">
+            <span id="sys-host" class="meta"></span>
+            <span id="sys-ip" class="meta"></span>
+            <span id="sys-version" class="meta"></span>
+        </footer>
     </main>
 
     <script>
@@ -261,6 +267,16 @@
                     th.critical_temp_min.toFixed(1) + "\u00b0C til +" + th.critical_temp_max.toFixed(1) + "\u00b0C";
             }
 
+            // Footer
+            if (d.network) {
+                var hostEl = document.getElementById("sys-host");
+                var ipEl = document.getElementById("sys-ip");
+                var verEl = document.getElementById("sys-version");
+                if (hostEl) hostEl.textContent = d.network.hostname;
+                if (ipEl) ipEl.textContent = d.network.local_ip;
+                if (verEl) verEl.textContent = "v" + d.version;
+            }
+
             // System
             var sysRows = [
                 ["Versjon", "GeoLoop v" + d.version],
@@ -271,7 +287,10 @@
             if (d.weather) sysRows.push(["V\u00e6rdata-intervall", d.weather.poll_interval_minutes + " min"]);
             sysRows.push(["Sensorpolling", "1 min"]);
             sysRows.push(["Kontrollsyklus", "10 min"]);
-            if (d.web) sysRows.push(["Webserver", d.web.host + ":" + d.web.port]);
+            if (d.network) {
+                sysRows.push(["Hostname", d.network.hostname]);
+                sysRows.push(["Lokal IP", d.network.local_ip + (d.web ? ":" + d.web.port : "")]);
+            }
             document.getElementById("system-tbl").innerHTML = kv(sysRows);
 
             // Anlegg
