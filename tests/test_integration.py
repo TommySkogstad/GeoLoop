@@ -8,7 +8,7 @@ import pytest
 from geoloop.controller.stub import StubController
 from geoloop.db.store import Store
 from geoloop.engine.models import HeatingDecision
-from geoloop.main import _control_loop, _read_all_sensors
+from geoloop.main import _control_loop, _read_all_sensors, _sensor_poll
 from geoloop.sensors.stub import StubSensor
 from geoloop.weather.met_client import MetClient, WeatherForecast, WeatherSnapshot
 
@@ -96,9 +96,7 @@ class TestControlLoop:
         assert weather_log[0]["temperature"] == pytest.approx(15.0)
 
     async def test_should_log_sensor_data(self, sensors, controller, store):
-        met_client = MetClient("test/1.0")
-        with patch.object(met_client, "fetch_forecast", new_callable=AsyncMock, return_value=_warm_forecast()):
-            await _control_loop(met_client, store, controller, sensors, 59.91, 10.75)
+        await _sensor_poll(store, sensors)
         sensor_log = store.get_sensor_log()
         assert len(sensor_log) >= 2
 
