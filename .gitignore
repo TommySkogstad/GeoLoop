@@ -3,7 +3,5 @@ __pycache__/
 .venv/
 *.egg-info/
 dist/
-config.yaml
 geoloop.db
 .pytest_cache/
-.env
